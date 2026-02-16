@@ -135,9 +135,9 @@ function TimeGrid({ columns, renderAllDay, renderEvent }: {
   renderEvent: (date: Date, hour: number) => React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
+    <div className="overflow-x-auto rounded-lg border bg-card">
       {/* All-day area */}
-      <div className="grid border-b bg-muted/30" style={{ gridTemplateColumns: `60px repeat(${columns.length}, 1fr)` }}>
+      <div className="grid border-b bg-muted/30" style={{ gridTemplateColumns: `48px repeat(${columns.length}, minmax(${columns.length > 1 ? '44px' : '1fr'}, 1fr))` }}>
         <div className="border-r p-2 text-[10px] font-medium text-muted-foreground">Dia todo</div>
         {columns.map((date, i) => (
           <div key={i} className="min-h-[32px] border-r p-1 last:border-r-0">
@@ -147,7 +147,7 @@ function TimeGrid({ columns, renderAllDay, renderEvent }: {
       </div>
 
       {/* Header row */}
-      <div className="grid border-b bg-muted" style={{ gridTemplateColumns: `60px repeat(${columns.length}, 1fr)` }}>
+      <div className="grid border-b bg-muted" style={{ gridTemplateColumns: `48px repeat(${columns.length}, minmax(${columns.length > 1 ? '44px' : '1fr'}, 1fr))` }}>
         <div className="border-r p-2" />
         {columns.map((date, i) => {
           const isToday = isSameDay(date, TODAY);
@@ -165,8 +165,8 @@ function TimeGrid({ columns, renderAllDay, renderEvent }: {
       {/* Hour rows */}
       <div className="max-h-[600px] overflow-y-auto">
         {HOURS.map((hour) => (
-          <div key={hour} className="grid border-b last:border-b-0" style={{ gridTemplateColumns: `60px repeat(${columns.length}, 1fr)` }}>
-            <div className="border-r p-1 pr-2 text-right text-[11px] text-muted-foreground">
+          <div key={hour} className="grid border-b last:border-b-0" style={{ gridTemplateColumns: `48px repeat(${columns.length}, minmax(${columns.length > 1 ? '44px' : '1fr'}, 1fr))` }}>
+            <div className="border-r p-1 pr-1 text-right text-[10px] text-muted-foreground">
               {String(hour).padStart(2, "0")}:00
             </div>
             {columns.map((date, i) => (
@@ -284,8 +284,8 @@ export default function Agenda() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Agenda</h1>
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Agenda</h1>
         <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
           <TabsList>
             <TabsTrigger value="mes">Mês</TabsTrigger>
@@ -296,9 +296,9 @@ export default function Agenda() {
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={prev}><ChevronLeft className="h-5 w-5" /></Button>
-        <h2 className="text-lg font-semibold">{headerText}</h2>
-        <Button variant="ghost" size="icon" onClick={next}><ChevronRight className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prev}><ChevronLeft className="h-4 w-4" /></Button>
+        <h2 className="text-sm font-semibold sm:text-lg">{headerText}</h2>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
       </div>
 
       {view === "mes" && <MonthView selectedDate={selectedDate} onDayClick={handleDayClick} />}

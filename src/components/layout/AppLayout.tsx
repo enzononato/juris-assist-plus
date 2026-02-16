@@ -14,12 +14,12 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
-  { label: "Tarefas", icon: ClipboardList, path: "/tarefas" },
-  { label: "Agenda", icon: CalendarDays, path: "/agenda" },
-  { label: "Processos", icon: Scale, path: "/processos" },
-  { label: "Responsáveis", icon: UserCheck, path: "/responsaveis" },
-  { label: "Alertas", icon: Bell, path: "/alertas" },
-  { label: "Menu", icon: Menu, path: "/menu" },
+  { label: "Tarefas", mobileLabel: "Tarefas", icon: ClipboardList, path: "/tarefas" },
+  { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda" },
+  { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos" },
+  { label: "Responsáveis", mobileLabel: "Resp.", icon: UserCheck, path: "/responsaveis" },
+  { label: "Alertas", mobileLabel: "Alertas", icon: Bell, path: "/alertas" },
+  { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -37,20 +37,20 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </header>
         <main className="flex-1 overflow-auto pb-20">{children}</main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card">
-          <div className="flex h-16 items-center justify-around">
+          <div className="flex h-16 items-center justify-around px-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1 text-[11px] font-medium transition-colors",
+                  "flex flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition-colors",
                   isActive(item.path)
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <item.icon className="h-5 w-5" />
-                {item.label}
+                <item.icon className="h-4 w-4" />
+                {item.mobileLabel}
               </Link>
             ))}
           </div>
