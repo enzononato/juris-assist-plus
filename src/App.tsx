@@ -14,6 +14,12 @@ import Agenda from "@/pages/Agenda";
 import Alertas from "@/pages/Alertas";
 import Responsaveis from "@/pages/Responsaveis";
 import Integracoes from "@/pages/Integracoes";
+import Relatorios from "@/pages/Relatorios";
+import Auditoria from "@/pages/Auditoria";
+import Empresas from "@/pages/Empresas";
+import UsuariosPermissoes from "@/pages/UsuariosPermissoes";
+import ChecklistTemplates from "@/pages/ChecklistTemplates";
+import RegrasAlertas from "@/pages/RegrasAlertas";
 import MenuPage from "@/pages/MenuPage";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +48,12 @@ const App = () => (
                   <Route path="responsaveis" element={<Responsaveis />} />
                   <Route path="alertas" element={<Alertas />} />
                   <Route path="integracoes" element={<Integracoes />} />
+                  <Route path="relatorios" element={<Relatorios />} />
+                  <Route path="auditoria" element={<Auditoria />} />
+                  <Route path="empresas" element={<Empresas />} />
+                  <Route path="usuarios" element={<UsuariosPermissoes />} />
+                  <Route path="checklists-templates" element={<ChecklistTemplates />} />
+                  <Route path="regras-alertas" element={<RegrasAlertas />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

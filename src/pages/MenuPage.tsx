@@ -1,14 +1,17 @@
-import { Building2, Users, Settings, Shield, FileText, LogOut, Plug, CalendarDays, UserCheck } from "lucide-react";
+import { Building2, Users, Settings, Shield, FileText, LogOut, Plug, CalendarDays, UserCheck, BarChart3, Bell, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
+  { label: "Relatórios", icon: BarChart3, description: "KPIs e dashboards visuais", path: "/relatorios" },
   { label: "Integrações", icon: Plug, description: "WhatsApp, E-mail, Drive, IA", path: "/integracoes" },
   { label: "Agenda", icon: CalendarDays, description: "Calendário unificado", path: "/agenda" },
   { label: "Responsáveis", icon: UserCheck, description: "Gerenciar contatos", path: "/responsaveis" },
-  { label: "Empresas e Filiais", icon: Building2, description: "Gerenciar organizações" },
-  { label: "Usuários e Permissões", icon: Users, description: "Controle de acesso" },
-  { label: "Checklists", icon: FileText, description: "Templates e modelos" },
+  { label: "Logs de Auditoria", icon: ShieldCheck, description: "Ações críticas do sistema", path: "/auditoria" },
+  { label: "Empresas e Filiais", icon: Building2, description: "Gerenciar organizações", path: "/empresas" },
+  { label: "Usuários e Permissões", icon: Users, description: "Controle de acesso", path: "/usuarios" },
+  { label: "Templates de Checklists", icon: FileText, description: "Modelos parametrizáveis", path: "/checklists-templates" },
+  { label: "Regras de Alertas", icon: Bell, description: "Offsets, SLAs e escalonamento", path: "/regras-alertas" },
   { label: "Casos Sigilosos", icon: Shield, description: "Sala segura" },
   { label: "Configurações", icon: Settings, description: "Preferências do sistema" },
 ];

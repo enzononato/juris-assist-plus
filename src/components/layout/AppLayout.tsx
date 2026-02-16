@@ -9,6 +9,7 @@ import {
   Plus,
   UserCheck,
   LayoutDashboard,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda" },
   { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos" },
   { label: "Responsáveis", mobileLabel: "Resp.", icon: UserCheck, path: "/responsaveis" },
+  { label: "Relatórios", mobileLabel: "Relatórios", icon: BarChart3, path: "/relatorios" },
   { label: "Alertas", mobileLabel: "Alertas", icon: Bell, path: "/alertas" },
   { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu" },
 ];
