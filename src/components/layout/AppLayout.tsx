@@ -8,12 +8,15 @@ import {
   Menu,
   Plus,
   UserCheck,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import JuriaChatButton from "@/components/ai/JuriaChatButton";
 
 const navItems = [
+  { label: "Dashboard", mobileLabel: "Home", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Tarefas", mobileLabel: "Tarefas", icon: ClipboardList, path: "/tarefas" },
   { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda" },
   { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos" },
@@ -22,11 +25,16 @@ const navItems = [
   { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu" },
 ];
 
+// Mobile nav only shows 5 items max for layout, rest goes in Menu
+const mobileNavItems = navItems.filter((i) =>
+  ["/dashboard", "/tarefas", "/processos", "/alertas", "/menu"].includes(i.path)
+);
+
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isMobile = useIsMobile();
 
-  const isActive = (path: string) => location.pathname.startsWith(path);
+  const isActive = (path: string) => location.pathname === path || (path !== "/dashboard" && location.pathname.startsWith(path));
 
   if (isMobile) {
     return (
@@ -41,7 +49,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-auto pb-[68px]">{children}</main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur-sm safe-area-pb">
           <div className="flex h-[60px] items-center justify-around px-1">
-            {navItems.map((item) => {
+            {mobileNavItems.map((item) => {
               const active = isActive(item.path);
               return (
                 <Link
@@ -66,6 +74,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             })}
           </div>
         </nav>
+        <JuriaChatButton />
       </div>
     );
   }
@@ -126,6 +135,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-auto">{children}</main>
+      <JuriaChatButton />
     </div>
   );
 }

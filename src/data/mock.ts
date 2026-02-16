@@ -83,6 +83,149 @@ export interface Alert {
   treated: boolean;
 }
 
+// ===== TIMELINE EVENTS =====
+
+export type TimelineEventType = 
+  | 'processo_criado' | 'status_alterado' | 'prazo_criado' | 'prazo_cumprido'
+  | 'audiencia_agendada' | 'audiencia_realizada' | 'prova_anexada' | 'tarefa_criada'
+  | 'tarefa_concluida' | 'comentario' | 'checklist_aplicado' | 'responsavel_alterado';
+
+export interface TimelineEvent {
+  id: string;
+  case_id: string;
+  type: TimelineEventType;
+  title: string;
+  description?: string;
+  user: string;
+  created_at: string;
+  metadata?: Record<string, string>;
+}
+
+export const mockTimelineEvents: TimelineEvent[] = [
+  {
+    id: 'te1', case_id: '1', type: 'processo_criado',
+    title: 'Processo criado',
+    description: 'Processo nº 0001234-56.2024.5.01.0001 cadastrado no sistema',
+    user: 'Ana Jurídico', created_at: '2024-03-15T09:00:00',
+  },
+  {
+    id: 'te2', case_id: '1', type: 'status_alterado',
+    title: 'Status alterado para Em Andamento',
+    description: 'Status anterior: Novo',
+    user: 'Ana Jurídico', created_at: '2024-03-20T14:30:00',
+  },
+  {
+    id: 'te3', case_id: '1', type: 'tarefa_criada',
+    title: 'Tarefa criada: Reunir espelhos de ponto',
+    description: 'Atribuída a João DP, prazo 20/02/2026',
+    user: 'Ana Jurídico', created_at: '2026-02-10T10:00:00',
+  },
+  {
+    id: 'te4', case_id: '1', type: 'prova_anexada',
+    title: 'Prova anexada: espelho_ponto_jan2024.pdf',
+    description: 'Categoria: Ponto Eletrônico, 2.3 MB',
+    user: 'João DP', created_at: '2026-02-15T11:30:00',
+  },
+  {
+    id: 'te5', case_id: '1', type: 'prova_anexada',
+    title: 'Prova anexada: espelho_ponto_fev2024.pdf',
+    description: 'Categoria: Ponto Eletrônico, 1.8 MB',
+    user: 'João DP', created_at: '2026-02-15T11:35:00',
+  },
+  {
+    id: 'te6', case_id: '1', type: 'checklist_aplicado',
+    title: 'Checklist aplicado: Provas – Jornada de Trabalho',
+    description: '6 itens a serem verificados',
+    user: 'Ana Jurídico', created_at: '2026-02-14T16:00:00',
+  },
+  {
+    id: 'te7', case_id: '1', type: 'audiencia_agendada',
+    title: 'Audiência de Instrução agendada',
+    description: '10/03/2026 às 14:00 – 1ª Vara do Trabalho de São Paulo',
+    user: 'Ana Jurídico', created_at: '2026-02-12T09:00:00',
+  },
+  {
+    id: 'te8', case_id: '1', type: 'prazo_criado',
+    title: 'Prazo criado: Manifestação sobre laudo pericial',
+    description: 'Vencimento: 28/02/2026',
+    user: 'Ana Jurídico', created_at: '2026-02-10T11:00:00',
+  },
+  {
+    id: 'te9', case_id: '1', type: 'comentario',
+    title: 'Comentário adicionado',
+    description: 'Verificar se o reclamante apresentou novos documentos na audiência anterior.',
+    user: 'Dr. Roberto Advogado', created_at: '2026-02-16T08:00:00',
+  },
+  {
+    id: 'te10', case_id: '2', type: 'processo_criado',
+    title: 'Processo criado',
+    description: 'Processo nº 0005678-90.2024.5.02.0002 cadastrado no sistema',
+    user: 'João DP', created_at: '2024-06-20T10:00:00',
+  },
+  {
+    id: 'te11', case_id: '2', type: 'audiencia_agendada',
+    title: 'Audiência Inicial agendada',
+    description: '25/02/2026 às 10:00 – 2ª Vara do Trabalho do Rio de Janeiro',
+    user: 'Dra. Patrícia Externa', created_at: '2026-01-15T14:00:00',
+  },
+  {
+    id: 'te12', case_id: '2', type: 'checklist_aplicado',
+    title: 'Checklist Pré-Audiência aplicado automaticamente',
+    description: '6 itens de preparação para audiência',
+    user: 'Sistema', created_at: '2026-01-15T14:01:00',
+  },
+  {
+    id: 'te13', case_id: '2', type: 'tarefa_criada',
+    title: 'Tarefa criada: Confirmar presença das testemunhas',
+    description: 'Atribuída a Ana Jurídico, prioridade Crítica',
+    user: 'Dra. Patrícia Externa', created_at: '2026-02-10T09:00:00',
+  },
+  {
+    id: 'te14', case_id: '2', type: 'prazo_criado',
+    title: 'Prazo criado: Juntada de documentos',
+    description: 'Vencimento: 20/02/2026',
+    user: 'Dra. Patrícia Externa', created_at: '2026-02-05T11:00:00',
+  },
+  {
+    id: 'te15', case_id: '3', type: 'processo_criado',
+    title: 'Processo sigiloso criado',
+    description: 'Nível: Ultra Restrito – Assédio Moral',
+    user: 'Ana Jurídico', created_at: '2025-01-10T08:00:00',
+  },
+  {
+    id: 'te16', case_id: '3', type: 'tarefa_criada',
+    title: 'Tarefa criada: Solicitar registros de catraca',
+    description: 'Atribuída a João DP',
+    user: 'Ana Jurídico', created_at: '2026-02-10T10:00:00',
+  },
+  {
+    id: 'te17', case_id: '4', type: 'processo_criado',
+    title: 'Processo criado',
+    description: 'Processo nº 0002345-67.2025.5.01.0004 – FGTS',
+    user: 'João DP', created_at: '2024-09-05T10:00:00',
+  },
+  {
+    id: 'te18', case_id: '4', type: 'status_alterado',
+    title: 'Status alterado para Sentença',
+    description: 'Sentença proferida em 10/01/2026',
+    user: 'Dr. Marcos Interno', created_at: '2026-01-10T16:00:00',
+  },
+  {
+    id: 'te19', case_id: '5', type: 'processo_criado',
+    title: 'Processo criado',
+    description: 'Processo nº 0003456-78.2025.5.02.0005 – Verbas Rescisórias',
+    user: 'Ana Jurídico', created_at: '2024-11-12T09:00:00',
+  },
+  {
+    id: 'te20', case_id: '5', type: 'status_alterado',
+    title: 'Status alterado para Recurso',
+    description: 'Recurso Ordinário interposto',
+    user: 'Dra. Patrícia Externa', created_at: '2026-02-01T14:00:00',
+  },
+];
+
+// ===== MOCK DATA =====
+
 export const mockCompanies: Company[] = [
   { id: 'c1', name: 'Revalle Juazeiro' },
   { id: 'c2', name: 'Revalle Bonfim' },
@@ -265,6 +408,71 @@ export const mockTasks: Task[] = [
     show_in_calendar: true,
     all_day: false,
   },
+  {
+    id: '6',
+    title: 'Revisar cálculos de verbas rescisórias',
+    case_id: '5',
+    case_number: '0003456-78.2025.5.02.0005',
+    employee: 'Ricardo Souza',
+    assignees: ['Dr. Marcos Interno'],
+    due_at: '2026-03-01T17:00:00',
+    priority: 'alta',
+    status: 'aberta',
+    show_in_calendar: true,
+    all_day: false,
+  },
+  {
+    id: '7',
+    title: 'Preparar recurso ordinário',
+    case_id: '5',
+    case_number: '0003456-78.2025.5.02.0005',
+    employee: 'Ricardo Souza',
+    assignees: ['Dra. Patrícia Externa', 'Ana Jurídico'],
+    due_at: '2026-03-10T18:00:00',
+    priority: 'critica',
+    status: 'em_andamento',
+    show_in_calendar: true,
+    all_day: false,
+  },
+  {
+    id: '8',
+    title: 'Coletar depoimento de testemunha interna',
+    case_id: '3',
+    case_number: '0009876-12.2024.5.03.0003',
+    employee: 'Pedro Henrique Costa',
+    assignees: ['Ana Jurídico'],
+    due_at: '2026-02-28T14:00:00',
+    priority: 'alta',
+    status: 'aberta',
+    show_in_calendar: false,
+    all_day: false,
+  },
+  {
+    id: '9',
+    title: 'Enviar documentos ao perito',
+    case_id: '1',
+    case_number: '0001234-56.2024.5.01.0001',
+    employee: 'Carlos Alberto Silva',
+    assignees: ['Dr. Roberto Advogado'],
+    due_at: '2026-02-25T12:00:00',
+    priority: 'media',
+    status: 'concluida',
+    show_in_calendar: false,
+    all_day: false,
+  },
+  {
+    id: '10',
+    title: 'Atualizar planilha de FGTS',
+    case_id: '4',
+    case_number: '0002345-67.2025.5.01.0004',
+    employee: 'Juliana Rodrigues',
+    assignees: ['João DP'],
+    due_at: '2026-02-19T17:00:00',
+    priority: 'baixa',
+    status: 'concluida',
+    show_in_calendar: false,
+    all_day: false,
+  },
 ];
 
 export const mockHearings: Hearing[] = [
@@ -288,6 +496,17 @@ export const mockHearings: Hearing[] = [
     time: '14:00',
     type: 'Audiência de Instrução',
     court: '1ª Vara do Trabalho de São Paulo',
+    status: 'agendada',
+  },
+  {
+    id: '3',
+    case_id: '5',
+    case_number: '0003456-78.2025.5.02.0005',
+    employee: 'Ricardo Souza',
+    date: '2026-04-15',
+    time: '09:30',
+    type: 'Audiência de Julgamento',
+    court: '1ª Vara do Trabalho de Paulo Afonso',
     status: 'agendada',
   },
 ];
@@ -319,6 +538,24 @@ export const mockDeadlines: Deadline[] = [
     title: 'Prazo recursal - Recurso Ordinário',
     due_at: '2026-03-15',
     status: 'pendente',
+  },
+  {
+    id: '4',
+    case_id: '3',
+    case_number: '0009876-12.2024.5.03.0003',
+    employee: 'Pedro Henrique Costa',
+    title: 'Prazo para resposta à notificação',
+    due_at: '2026-03-05',
+    status: 'pendente',
+  },
+  {
+    id: '5',
+    case_id: '1',
+    case_number: '0001234-56.2024.5.01.0001',
+    employee: 'Carlos Alberto Silva',
+    title: 'Prazo para entrega de documentos ao perito',
+    due_at: '2026-02-22',
+    status: 'cumprido',
   },
 ];
 
