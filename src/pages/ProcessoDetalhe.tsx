@@ -13,6 +13,8 @@ import ProvasTab from "@/components/provas/ProvasTab";
 import ChecklistsTab from "@/components/checklists/ChecklistsTab";
 import TimelineTab from "@/components/timeline/TimelineTab";
 import ProcessoResumoTab from "@/components/processo/ProcessoResumoTab";
+import ProcessoAIResumoTab from "@/components/processo/ProcessoAIResumoTab";
+import NovaAudienciaDialog from "@/components/processo/NovaAudienciaDialog";
 
 export default function ProcessoDetalhe() {
   const { id } = useParams();
@@ -49,6 +51,7 @@ export default function ProcessoDetalhe() {
       <Tabs defaultValue="resumo">
         <TabsList className="mb-4 w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
+          <TabsTrigger value="resumo-ia">Resumo IA</TabsTrigger>
           <TabsTrigger value="timeline">Timeline ({timelineEvents.length})</TabsTrigger>
           <TabsTrigger value="prazos">Prazos ({deadlines.length})</TabsTrigger>
           <TabsTrigger value="audiencias">Audiências ({hearings.length})</TabsTrigger>
@@ -59,6 +62,10 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="resumo">
           <ProcessoResumoTab caso={caso} />
+        </TabsContent>
+
+        <TabsContent value="resumo-ia">
+          <ProcessoAIResumoTab caso={caso} />
         </TabsContent>
 
         <TabsContent value="timeline">
@@ -79,7 +86,10 @@ export default function ProcessoDetalhe() {
         </TabsContent>
 
         <TabsContent value="audiencias">
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <NovaAudienciaDialog caseId={id} />
+            </div>
             {hearings.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma audiência cadastrada.</p>}
             {hearings.map((h) => (
               <div key={h.id} className="rounded-lg border bg-card p-4">
