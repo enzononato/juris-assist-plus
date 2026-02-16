@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import Processos from "@/pages/Processos";
 import ProcessoDetalhe from "@/pages/ProcessoDetalhe";
+import NovoProcesso from "@/pages/NovoProcesso";
 import Tarefas from "@/pages/Tarefas";
 import NovaTarefa from "@/pages/NovaTarefa";
 import Agenda from "@/pages/Agenda";
@@ -29,6 +30,7 @@ const App = () => (
               <AppLayout>
                 <Routes>
                   <Route path="processos" element={<Processos />} />
+                  <Route path="processos/novo" element={<NovoProcesso />} />
                   <Route path="processos/:id" element={<ProcessoDetalhe />} />
                   <Route path="tarefas" element={<Tarefas />} />
                   <Route path="tarefas/nova" element={<NovaTarefa />} />

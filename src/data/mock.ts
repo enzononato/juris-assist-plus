@@ -4,12 +4,26 @@ export type TaskStatus = 'aberta' | 'em_andamento' | 'aguardando' | 'concluida';
 export type AlertSeverity = 'info' | 'atencao' | 'urgente';
 export type AlertType = 'prazo' | 'audiencia' | 'tarefa' | 'prova' | 'publicacao';
 
+export interface Company {
+  id: string;
+  name: string;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  company_id: string;
+  role: string;
+}
+
 export interface Case {
   id: string;
   case_number: string;
+  company_id: string;
   company: string;
   branch: string;
   employee: string;
+  employee_id: string;
   theme: string;
   status: CaseStatus;
   court: string;
@@ -69,16 +83,45 @@ export interface Alert {
   treated: boolean;
 }
 
+export const mockCompanies: Company[] = [
+  { id: 'c1', name: 'Revalle Juazeiro' },
+  { id: 'c2', name: 'Revalle Bonfim' },
+  { id: 'c3', name: 'Revalle Petrolina' },
+  { id: 'c4', name: 'Revalle Ribeira do Pombal' },
+  { id: 'c5', name: 'Revalle Paulo Afonso' },
+  { id: 'c6', name: 'Revalle Alagoinhas' },
+  { id: 'c7', name: 'Revalle Serrinha' },
+];
+
+export const mockEmployees: Employee[] = [
+  { id: 'e1', name: 'Carlos Alberto Silva', company_id: 'c1', role: 'Operador de Produção' },
+  { id: 'e2', name: 'Ana Paula Santos', company_id: 'c1', role: 'Assistente Administrativo' },
+  { id: 'e3', name: 'Maria Fernanda Oliveira', company_id: 'c2', role: 'Auxiliar de Logística' },
+  { id: 'e4', name: 'José Roberto Lima', company_id: 'c2', role: 'Motorista' },
+  { id: 'e5', name: 'Pedro Henrique Costa', company_id: 'c3', role: 'Vendedor' },
+  { id: 'e6', name: 'Luciana Pereira', company_id: 'c3', role: 'Caixa' },
+  { id: 'e7', name: 'Juliana Rodrigues', company_id: 'c4', role: 'Supervisora de Produção' },
+  { id: 'e8', name: 'Marcos Antônio Souza', company_id: 'c4', role: 'Operador de Máquinas' },
+  { id: 'e9', name: 'Ricardo Souza', company_id: 'c5', role: 'Técnico de Manutenção' },
+  { id: 'e10', name: 'Fernanda Almeida', company_id: 'c5', role: 'Assistente de RH' },
+  { id: 'e11', name: 'Thiago Barbosa', company_id: 'c6', role: 'Estoquista' },
+  { id: 'e12', name: 'Camila Ferreira', company_id: 'c6', role: 'Recepcionista' },
+  { id: 'e13', name: 'Bruno Nascimento', company_id: 'c7', role: 'Vendedor Externo' },
+  { id: 'e14', name: 'Patrícia Mendes', company_id: 'c7', role: 'Auxiliar Financeiro' },
+];
+
 export const mockCases: Case[] = [
   {
     id: '1',
     case_number: '0001234-56.2024.5.01.0001',
-    company: 'Tech Solutions Ltda',
-    branch: 'Filial São Paulo',
+    company_id: 'c1',
+    company: 'Revalle Juazeiro',
+    branch: 'Juazeiro - BA',
     employee: 'Carlos Alberto Silva',
+    employee_id: 'e1',
     theme: 'Horas Extras',
     status: 'em_andamento',
-    court: '1ª Vara do Trabalho de São Paulo',
+    court: '1ª Vara do Trabalho de Juazeiro',
     responsible: 'Ana Jurídico',
     lawyer: 'Dr. Roberto Advogado',
     confidentiality: 'normal',
@@ -89,12 +132,14 @@ export const mockCases: Case[] = [
   {
     id: '2',
     case_number: '0005678-90.2024.5.02.0002',
-    company: 'Logística Express SA',
-    branch: 'Filial Rio de Janeiro',
+    company_id: 'c2',
+    company: 'Revalle Bonfim',
+    branch: 'Senhor do Bonfim - BA',
     employee: 'Maria Fernanda Oliveira',
+    employee_id: 'e3',
     theme: 'Rescisão Indireta',
     status: 'audiencia_marcada',
-    court: '2ª Vara do Trabalho do Rio de Janeiro',
+    court: '1ª Vara do Trabalho de Senhor do Bonfim',
     responsible: 'João DP',
     lawyer: 'Dra. Patrícia Externa',
     confidentiality: 'normal',
@@ -105,12 +150,14 @@ export const mockCases: Case[] = [
   {
     id: '3',
     case_number: '0009876-12.2024.5.03.0003',
-    company: 'Tech Solutions Ltda',
-    branch: 'Filial Belo Horizonte',
+    company_id: 'c3',
+    company: 'Revalle Petrolina',
+    branch: 'Petrolina - PE',
     employee: 'Pedro Henrique Costa',
+    employee_id: 'e5',
     theme: 'Assédio Moral',
     status: 'novo',
-    court: '3ª Vara do Trabalho de Belo Horizonte',
+    court: '1ª Vara do Trabalho de Petrolina',
     responsible: 'Ana Jurídico',
     lawyer: 'Dr. Roberto Advogado',
     confidentiality: 'ultra_restrito',
@@ -120,12 +167,14 @@ export const mockCases: Case[] = [
   {
     id: '4',
     case_number: '0002345-67.2025.5.01.0004',
-    company: 'Comércio Global Ltda',
-    branch: 'Filial Curitiba',
+    company_id: 'c4',
+    company: 'Revalle Ribeira do Pombal',
+    branch: 'Ribeira do Pombal - BA',
     employee: 'Juliana Rodrigues',
+    employee_id: 'e7',
     theme: 'FGTS',
     status: 'sentenca',
-    court: '4ª Vara do Trabalho de Curitiba',
+    court: '1ª Vara do Trabalho de Ribeira do Pombal',
     responsible: 'João DP',
     lawyer: 'Dr. Marcos Interno',
     confidentiality: 'normal',
@@ -134,12 +183,14 @@ export const mockCases: Case[] = [
   {
     id: '5',
     case_number: '0003456-78.2025.5.02.0005',
-    company: 'Logística Express SA',
-    branch: 'Filial São Paulo',
+    company_id: 'c5',
+    company: 'Revalle Paulo Afonso',
+    branch: 'Paulo Afonso - BA',
     employee: 'Ricardo Souza',
+    employee_id: 'e9',
     theme: 'Verbas Rescisórias',
     status: 'recurso',
-    court: '5ª Vara do Trabalho de São Paulo',
+    court: '1ª Vara do Trabalho de Paulo Afonso',
     responsible: 'Ana Jurídico',
     lawyer: 'Dra. Patrícia Externa',
     confidentiality: 'normal',

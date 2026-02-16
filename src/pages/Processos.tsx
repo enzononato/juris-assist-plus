@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Filter, Plus, ChevronRight, Shield } from "lucide-react";
+import { Search, Filter, Plus, ChevronRight, Shield, Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockCases, statusLabels, type CaseStatus } from "@/data/mock";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { mockCases, mockCompanies, statusLabels, type CaseStatus } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<CaseStatus, string> = {
@@ -18,12 +19,17 @@ const statusColors: Record<CaseStatus, string> = {
 
 export default function Processos() {
   const [search, setSearch] = useState("");
-  const filtered = mockCases.filter(
-    (c) =>
+  const [companyFilter, setCompanyFilter] = useState("all");
+
+  const filtered = mockCases.filter((c) => {
+    const matchesSearch =
       c.case_number.includes(search) ||
       c.employee.toLowerCase().includes(search.toLowerCase()) ||
-      c.theme.toLowerCase().includes(search.toLowerCase())
-  );
+      c.theme.toLowerCase().includes(search.toLowerCase()) ||
+      c.company.toLowerCase().includes(search.toLowerCase());
+    const matchesCompany = companyFilter === "all" || c.company_id === companyFilter;
+    return matchesSearch && matchesCompany;
+  });
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -32,25 +38,38 @@ export default function Processos() {
           <h1 className="text-2xl font-bold tracking-tight">Processos</h1>
           <p className="text-sm text-muted-foreground">{filtered.length} processos encontrados</p>
         </div>
-        <Button className="gap-2" size="sm">
-          <Plus className="h-4 w-4" />
-          Novo Processo
+        <Button className="gap-2" size="sm" asChild>
+          <Link to="/processos/novo">
+            <Plus className="h-4 w-4" />
+            Novo Processo
+          </Link>
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nº, nome ou tema..."
+            placeholder="Buscar por nº, nome, tema ou empresa..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
+        <Select value={companyFilter} onValueChange={setCompanyFilter}>
+          <SelectTrigger className="w-full sm:w-[220px]">
+            <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Todas as empresas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as empresas</SelectItem>
+            {mockCompanies.map((company) => (
+              <SelectItem key={company.id} value={company.id}>
+                {company.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
@@ -68,7 +87,7 @@ export default function Processos() {
                 )}
               </div>
               <p className="truncate text-xs text-muted-foreground">
-                {c.case_number} · {c.company} – {c.branch}
+                {c.case_number} · <span className="font-medium text-primary">{c.company}</span> – {c.branch}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className={cn("text-[10px]", statusColors[c.status])}>
