@@ -7,6 +7,7 @@ import {
   Bell,
   Menu,
   Plus,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const navItems = [
   { label: "Tarefas", icon: ClipboardList, path: "/tarefas" },
   { label: "Agenda", icon: CalendarDays, path: "/agenda" },
   { label: "Processos", icon: Scale, path: "/processos" },
+  { label: "Responsáveis", icon: UserCheck, path: "/responsaveis" },
   { label: "Alertas", icon: Bell, path: "/alertas" },
   { label: "Menu", icon: Menu, path: "/menu" },
 ];

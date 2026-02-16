@@ -11,6 +11,7 @@ import Tarefas from "@/pages/Tarefas";
 import NovaTarefa from "@/pages/NovaTarefa";
 import Agenda from "@/pages/Agenda";
 import Alertas from "@/pages/Alertas";
+import Responsaveis from "@/pages/Responsaveis";
 import MenuPage from "@/pages/MenuPage";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
                   <Route path="tarefas" element={<Tarefas />} />
                   <Route path="tarefas/nova" element={<NovaTarefa />} />
                   <Route path="agenda" element={<Agenda />} />
+                  <Route path="responsaveis" element={<Responsaveis />} />
                   <Route path="alertas" element={<Alertas />} />
                   <Route path="menu" element={<MenuPage />} />
                   <Route path="*" element={<NotFound />} />
