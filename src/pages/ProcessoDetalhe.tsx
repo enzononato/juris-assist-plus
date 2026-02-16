@@ -109,7 +109,7 @@ export default function ProcessoDetalhe() {
         </TabsContent>
 
         <TabsContent value="provas">
-          <ProvasTab requests={evidenceRequests} items={evidenceItems} />
+          <ProvasTab requests={evidenceRequests} items={evidenceItems} caseId={id} />
         </TabsContent>
 
         <TabsContent value="checklists">

@@ -709,6 +709,15 @@ export interface EvidenceItem {
   uploaded_at: string;
   status: EvidenceItemStatus;
   file_size: string;
+  sha256?: string;
+}
+
+export interface DownloadLog {
+  id: string;
+  evidence_item_id: string;
+  user: string;
+  downloaded_at: string;
+  watermarked: boolean;
 }
 
 export const mockEvidenceRequests: EvidenceRequest[] = [
@@ -752,57 +761,75 @@ export const mockEvidenceRequests: EvidenceRequest[] = [
 
 export const mockEvidenceItems: EvidenceItem[] = [
   {
-    id: 'ei1',
-    request_id: 'er1',
-    case_id: '1',
-    filename: 'espelho_ponto_jan2024.pdf',
-    category: 'ponto_eletronico',
-    origin: 'sistema_ponto',
-    fact_date: '2024-01-01',
-    uploaded_by: 'João DP',
-    uploaded_at: '2026-02-15T11:30:00',
-    status: 'validado',
-    file_size: '2.3 MB',
+    id: 'ei1', request_id: 'er1', case_id: '1',
+    filename: 'espelho_ponto_jan2024.pdf', category: 'ponto_eletronico', origin: 'sistema_ponto',
+    fact_date: '2024-01-01', uploaded_by: 'João DP', uploaded_at: '2026-02-15T11:30:00',
+    status: 'validado', file_size: '2.3 MB', sha256: 'a1b2c3d4e5f6789012345678abcdef01234567890abcdef1234567890abcdef12',
   },
   {
-    id: 'ei2',
-    request_id: 'er1',
-    case_id: '1',
-    filename: 'espelho_ponto_fev2024.pdf',
-    category: 'ponto_eletronico',
-    origin: 'sistema_ponto',
-    fact_date: '2024-02-01',
-    uploaded_by: 'João DP',
-    uploaded_at: '2026-02-15T11:35:00',
-    status: 'recebido',
-    file_size: '1.8 MB',
+    id: 'ei2', request_id: 'er1', case_id: '1',
+    filename: 'espelho_ponto_fev2024.pdf', category: 'ponto_eletronico', origin: 'sistema_ponto',
+    fact_date: '2024-02-01', uploaded_by: 'João DP', uploaded_at: '2026-02-15T11:35:00',
+    status: 'recebido', file_size: '1.8 MB', sha256: 'b2c3d4e5f6789012345678abcdef01234567890abcdef1234567890abcdef1234',
   },
   {
-    id: 'ei3',
-    request_id: 'er1',
-    case_id: '1',
-    filename: 'escala_trabalho_2023.xlsx',
-    category: 'escalas',
-    origin: 'drive',
-    fact_date: '2023-01-01',
-    uploaded_by: 'Maria RH',
-    uploaded_at: '2026-02-16T09:00:00',
-    status: 'pendente',
-    file_size: '856 KB',
+    id: 'ei3', request_id: 'er1', case_id: '1',
+    filename: 'escala_trabalho_2023.xlsx', category: 'escalas', origin: 'drive',
+    fact_date: '2023-01-01', uploaded_by: 'Maria RH', uploaded_at: '2026-02-16T09:00:00',
+    status: 'pendente', file_size: '856 KB', sha256: 'c3d4e5f6789012345678abcdef01234567890abcdef1234567890abcdef123456',
   },
   {
-    id: 'ei4',
-    request_id: 'er3',
-    case_id: '3',
-    filename: 'registro_cftv_corredor.mp4',
-    category: 'cftv_camera',
-    origin: 'servidor',
-    fact_date: '2025-01-05',
-    uploaded_by: 'João DP',
-    uploaded_at: '2026-02-12T16:00:00',
-    status: 'recebido',
-    file_size: '45.2 MB',
+    id: 'ei4', request_id: 'er3', case_id: '3',
+    filename: 'registro_cftv_corredor.mp4', category: 'cftv_camera', origin: 'servidor',
+    fact_date: '2025-01-05', uploaded_by: 'João DP', uploaded_at: '2026-02-12T16:00:00',
+    status: 'recebido', file_size: '45.2 MB', sha256: 'd4e5f6789012345678abcdef01234567890abcdef1234567890abcdef12345678',
   },
+  {
+    id: 'ei5', request_id: 'er2', case_id: '1',
+    filename: 'autorizacao_he_mar2024.pdf', category: 'documentos_assinados', origin: 'drive',
+    fact_date: '2024-03-01', uploaded_by: 'Maria RH', uploaded_at: '2026-02-16T10:30:00',
+    status: 'recebido', file_size: '340 KB', sha256: 'e5f6789012345678abcdef01234567890abcdef1234567890abcdef1234567890',
+  },
+  {
+    id: 'ei6', request_id: 'er2', case_id: '1',
+    filename: 'comprovante_pgto_he_abr2024.pdf', category: 'documentos_assinados', origin: 'email',
+    fact_date: '2024-04-01', uploaded_by: 'João DP', uploaded_at: '2026-02-16T14:00:00',
+    status: 'pendente', file_size: '210 KB', sha256: 'f6789012345678abcdef01234567890abcdef1234567890abcdef123456789012',
+  },
+  {
+    id: 'ei7', request_id: 'er3', case_id: '3',
+    filename: 'logs_acesso_jan2025.csv', category: 'catraca_controle_acesso', origin: 'sistema_catraca',
+    fact_date: '2025-01-01', uploaded_by: 'João DP', uploaded_at: '2026-02-13T09:00:00',
+    status: 'validado', file_size: '1.2 MB', sha256: '0789012345678abcdef01234567890abcdef1234567890abcdef12345678901234',
+  },
+  {
+    id: 'ei8', request_id: 'er3', case_id: '3',
+    filename: 'conversas_teams_supervisor.pdf', category: 'conversas_oficiais', origin: 'outro',
+    fact_date: '2024-12-15', uploaded_by: 'Ana Jurídico', uploaded_at: '2026-02-14T11:00:00',
+    status: 'recebido', file_size: '3.5 MB', sha256: '1234567890abcdef01234567890abcdef1234567890abcdef1234567890abcdef',
+  },
+  {
+    id: 'ei9', request_id: 'er1', case_id: '1',
+    filename: 'espelho_ponto_mar2024.pdf', category: 'ponto_eletronico', origin: 'sistema_ponto',
+    fact_date: '2024-03-01', uploaded_by: 'João DP', uploaded_at: '2026-02-16T15:00:00',
+    status: 'recebido', file_size: '2.1 MB', sha256: '2345678abcdef01234567890abcdef1234567890abcdef1234567890abcdef0123',
+  },
+  {
+    id: 'ei10', request_id: 'er3', case_id: '3',
+    filename: 'atestado_medico_reclamante.pdf', category: 'atestados_justificativas', origin: 'email',
+    fact_date: '2025-01-08', uploaded_by: 'Ana Jurídico', uploaded_at: '2026-02-15T08:00:00',
+    status: 'validado', file_size: '450 KB', sha256: '345678abcdef01234567890abcdef1234567890abcdef1234567890abcdef012345',
+  },
+];
+
+export const mockDownloadLogs: DownloadLog[] = [
+  { id: 'dl1', evidence_item_id: 'ei1', user: 'Ana Jurídico', downloaded_at: '2026-02-15T14:00:00', watermarked: false },
+  { id: 'dl2', evidence_item_id: 'ei1', user: 'Dr. Roberto Advogado', downloaded_at: '2026-02-15T16:30:00', watermarked: false },
+  { id: 'dl3', evidence_item_id: 'ei4', user: 'Ana Jurídico', downloaded_at: '2026-02-13T10:00:00', watermarked: true },
+  { id: 'dl4', evidence_item_id: 'ei7', user: 'Ana Jurídico', downloaded_at: '2026-02-14T09:30:00', watermarked: true },
+  { id: 'dl5', evidence_item_id: 'ei8', user: 'Ana Jurídico', downloaded_at: '2026-02-14T11:30:00', watermarked: true },
+  { id: 'dl6', evidence_item_id: 'ei3', user: 'Maria RH', downloaded_at: '2026-02-16T09:15:00', watermarked: false },
+  { id: 'dl7', evidence_item_id: 'ei2', user: 'João DP', downloaded_at: '2026-02-16T10:00:00', watermarked: false },
 ];
 
 // ===== CHECKLISTS =====
