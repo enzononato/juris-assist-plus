@@ -3,7 +3,14 @@ import { ArrowLeft, CalendarDays, Clock, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockCases, mockTasks, mockHearings, mockDeadlines, statusLabels, taskStatusLabels, priorityLabels } from "@/data/mock";
+import {
+  mockCases, mockTasks, mockHearings, mockDeadlines,
+  mockEvidenceRequests, mockEvidenceItems, mockCaseChecklists,
+  statusLabels, taskStatusLabels, priorityLabels,
+  evidenceCategoryLabels, evidenceOriginLabels, checklistTypeLabels,
+} from "@/data/mock";
+import ProvasTab from "@/components/provas/ProvasTab";
+import ChecklistsTab from "@/components/checklists/ChecklistsTab";
 
 export default function ProcessoDetalhe() {
   const { id } = useParams();
@@ -13,6 +20,9 @@ export default function ProcessoDetalhe() {
   const tasks = mockTasks.filter((t) => t.case_id === id);
   const hearings = mockHearings.filter((h) => h.case_id === id);
   const deadlines = mockDeadlines.filter((d) => d.case_id === id);
+  const evidenceRequests = mockEvidenceRequests.filter((r) => r.case_id === id);
+  const evidenceItems = mockEvidenceItems.filter((i) => i.case_id === id);
+  const checklists = mockCaseChecklists.filter((c) => c.case_id === id);
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -39,7 +49,8 @@ export default function ProcessoDetalhe() {
           <TabsTrigger value="prazos">Prazos ({deadlines.length})</TabsTrigger>
           <TabsTrigger value="audiencias">Audiências ({hearings.length})</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas ({tasks.length})</TabsTrigger>
-          <TabsTrigger value="provas">Provas</TabsTrigger>
+          <TabsTrigger value="provas">Provas ({evidenceRequests.length})</TabsTrigger>
+          <TabsTrigger value="checklists">Checklists ({checklists.length})</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
 
@@ -47,7 +58,7 @@ export default function ProcessoDetalhe() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <h3 className="text-sm font-semibold">Dados do Processo</h3>
-              <Info icon={<Scale />} label="Tribunal" value={caso.court} />
+              <Info icon={<ScaleIcon />} label="Tribunal" value={caso.court} />
               <Info icon={<User />} label="Responsável" value={caso.responsible} />
               <Info icon={<User />} label="Advogado" value={caso.lawyer} />
               <Info label="Tema" value={caso.theme} />
@@ -114,7 +125,11 @@ export default function ProcessoDetalhe() {
         </TabsContent>
 
         <TabsContent value="provas">
-          <p className="text-sm text-muted-foreground">Módulo de provas será implementado com o backend.</p>
+          <ProvasTab requests={evidenceRequests} items={evidenceItems} />
+        </TabsContent>
+
+        <TabsContent value="checklists">
+          <ChecklistsTab checklists={checklists} />
         </TabsContent>
 
         <TabsContent value="timeline">
@@ -125,7 +140,7 @@ export default function ProcessoDetalhe() {
   );
 }
 
-function Scale() {
+function ScaleIcon() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>;
 }
 
