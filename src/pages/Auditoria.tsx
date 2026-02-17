@@ -55,16 +55,22 @@ const actionSeverity: Record<AuditAction, string> = {
 const mockAuditLogs: AuditLog[] = [
   { id: "al1", action: "acesso_sigiloso", user: "Ana Jurídico", description: "Acessou processo sigiloso", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-16T15:30:00" },
   { id: "al2", action: "download", user: "Ana Jurídico", description: "Download de registro_cftv_corredor.mp4 (com marca d'água)", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-16T15:31:00" },
+  { id: "al2b", action: "download", user: "Ana Jurídico", description: "Download de logs_acesso_jan2025.csv (com marca d'água)", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-14T09:30:00" },
+  { id: "al2c", action: "download", user: "Ana Jurídico", description: "Download de conversas_teams_supervisor.pdf (com marca d'água)", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-14T11:30:00" },
   { id: "al3", action: "evidencia_validada", user: "Ana Jurídico", description: "Validou evidência espelho_ponto_jan2024.pdf", case_number: "0001234-56.2024.5.01.0001", ip: "192.168.1.10", created_at: "2026-02-16T14:00:00" },
+  { id: "al3b", action: "evidencia_validada", user: "Ana Jurídico", description: "Validou evidência logs_acesso_jan2025.csv", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-14T09:30:00" },
+  { id: "al3c", action: "evidencia_validada", user: "Ana Jurídico", description: "Validou evidência atestado_medico_reclamante.pdf", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-15T08:30:00" },
   { id: "al4", action: "status_alterado", user: "Ana Jurídico", description: "Status alterado de 'Novo' para 'Em Andamento'", case_number: "0001234-56.2024.5.01.0001", ip: "192.168.1.10", created_at: "2026-02-16T11:00:00" },
   { id: "al5", action: "prazo_alterado", user: "Dra. Patrícia Externa", description: "Prazo 'Juntada de documentos' prorrogado de 20/02 para 25/02", case_number: "0005678-90.2024.5.02.0002", ip: "187.45.23.100", created_at: "2026-02-16T10:00:00" },
   { id: "al6", action: "login", user: "João DP", description: "Login realizado via e-mail", ip: "192.168.1.15", created_at: "2026-02-16T08:30:00" },
   { id: "al7", action: "download", user: "Dr. Roberto Advogado", description: "Download de espelho_ponto_jan2024.pdf", case_number: "0001234-56.2024.5.01.0001", ip: "200.100.50.25", created_at: "2026-02-15T16:30:00" },
+  { id: "al7b", action: "download", user: "Ana Jurídico", description: "Download de espelho_ponto_jan2024.pdf", case_number: "0001234-56.2024.5.01.0001", ip: "192.168.1.10", created_at: "2026-02-15T14:00:00" },
+  { id: "al7c", action: "download", user: "João DP", description: "Download de espelho_ponto_fev2024.pdf", case_number: "0001234-56.2024.5.01.0001", ip: "192.168.1.15", created_at: "2026-02-16T10:00:00" },
+  { id: "al7d", action: "download", user: "Maria RH", description: "Download de escala_trabalho_2023.xlsx", case_number: "0001234-56.2024.5.01.0001", ip: "192.168.1.20", created_at: "2026-02-16T09:15:00" },
   { id: "al8", action: "permissao_alterada", user: "Ana Jurídico", description: "Concedeu acesso de 'Advogado Externo' a Dra. Patrícia", ip: "192.168.1.10", created_at: "2026-02-15T14:00:00" },
   { id: "al9", action: "arquivo_excluido", user: "João DP", description: "Excluiu arquivo rascunho_calculo.xlsx (versão incorreta)", case_number: "0001234-56.2024.5.01.0001", ip: "192.168.1.15", created_at: "2026-02-15T11:00:00" },
   { id: "al10", action: "acesso_sigiloso", user: "Dr. Roberto Advogado", description: "Tentativa de acesso a processo sigiloso — NEGADO (sem permissão)", case_number: "0009876-12.2024.5.03.0003", ip: "200.100.50.25", created_at: "2026-02-15T09:00:00" },
   { id: "al11", action: "login", user: "Ana Jurídico", description: "Login realizado via e-mail", ip: "192.168.1.10", created_at: "2026-02-15T08:00:00" },
-  { id: "al12", action: "evidencia_validada", user: "Ana Jurídico", description: "Validou evidência logs_acesso_jan2025.csv", case_number: "0009876-12.2024.5.03.0003", ip: "192.168.1.10", created_at: "2026-02-14T09:30:00" },
 ];
 
 export default function Auditoria() {

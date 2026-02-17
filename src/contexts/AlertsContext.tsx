@@ -80,6 +80,73 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       });
     }, 3000);
 
+    // Simulate SLA prova 48h alert after 5s
+    const slaTimer = setTimeout(() => {
+      const slaAlert: Alert = {
+        id: "auto-sla-48",
+        type: "prova",
+        title: "⚠️ SLA de Prova: 48h sem atendimento",
+        description: "Solicitação 'Assédio Moral' – registros de CFTV e logs de acesso ainda pendentes. SLA em risco!",
+        case_number: "0009876-12.2024.5.03.0003",
+        employee: "Pedro Henrique Costa",
+        event_date: new Date().toISOString(),
+        severity: "atencao",
+        treated: false,
+      };
+      setAlerts((prev) => [slaAlert, ...prev]);
+
+      setEmailLogs((prev) => [
+        {
+          id: "em-sla-48",
+          alert_id: "auto-sla-48",
+          to: "joao.dp@revalle.com.br",
+          subject: "⚠️ SLA Em Risco (48h): Provas pendentes – Assédio Moral",
+          status: "enviado",
+          sent_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+
+      toast({
+        title: "⚠️ SLA de Prova em Risco",
+        description: "48h sem atendimento – registros de CFTV pendentes.",
+      });
+    }, 5000);
+
+    // Simulate SLA prova 72h (atrasado) after 8s
+    const sla72Timer = setTimeout(() => {
+      const sla72Alert: Alert = {
+        id: "auto-sla-72",
+        type: "prova",
+        title: "🔴 SLA Estourado: 72h sem atendimento",
+        description: "Solicitação 'Assédio Moral' – SLA de 72h estourado! Escalonamento ativado para gestora.",
+        case_number: "0009876-12.2024.5.03.0003",
+        employee: "Pedro Henrique Costa",
+        event_date: new Date().toISOString(),
+        severity: "urgente",
+        treated: false,
+      };
+      setAlerts((prev) => [sla72Alert, ...prev]);
+
+      setEmailLogs((prev) => [
+        {
+          id: "em-sla-72",
+          alert_id: "auto-sla-72",
+          to: "ana@revalle.com.br",
+          subject: "🔴 SLA ESTOURADO (72h): Provas não entregues – Assédio Moral",
+          status: "enviado",
+          sent_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+
+      toast({
+        title: "🔴 SLA de Prova Estourado!",
+        description: "72h sem atendimento – escalonamento ativado.",
+        variant: "destructive",
+      });
+    }, 8000);
+
     // Simulate escalation after 6s (untreated urgent alert)
     const escalationTimer = setTimeout(() => {
       setEscalations((prev) => [
@@ -114,6 +181,8 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
     return () => {
       clearTimeout(timer);
+      clearTimeout(slaTimer);
+      clearTimeout(sla72Timer);
       clearTimeout(escalationTimer);
     };
   }, [user, simulated]);
