@@ -13,6 +13,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -42,6 +52,7 @@ export default function Responsaveis() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<Responsavel, "id">>(emptyForm);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = responsaveis.filter(
     (r) =>
@@ -79,9 +90,11 @@ export default function Responsaveis() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    setResponsaveis((prev) => prev.filter((r) => r.id !== id));
+  const confirmDelete = () => {
+    if (!deleteId) return;
+    setResponsaveis((prev) => prev.filter((r) => r.id !== deleteId));
     toast({ title: "Responsável removido" });
+    setDeleteId(null);
   };
 
   const getCompanyName = (cid: string) => {
@@ -171,7 +184,7 @@ export default function Responsaveis() {
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(r.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(r.id)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -268,6 +281,24 @@ export default function Responsaveis() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de exclusão */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este responsável? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
