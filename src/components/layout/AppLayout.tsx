@@ -21,25 +21,27 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth, roleLabels } from "@/contexts/AuthContext";
 import JuriaChatButton from "@/components/ai/JuriaChatButton";
 
-const navItems = [
-  { label: "Dashboard", mobileLabel: "Home", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Tarefas", mobileLabel: "Tarefas", icon: ClipboardList, path: "/tarefas" },
-  { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda" },
-  { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos" },
-  { label: "Responsáveis", mobileLabel: "Resp.", icon: UserCheck, path: "/responsaveis" },
-  { label: "Relatórios", mobileLabel: "Relatórios", icon: BarChart3, path: "/relatorios" },
-  { label: "Alertas", mobileLabel: "Alertas", icon: Bell, path: "/alertas" },
-  { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu" },
+const allNavItems = [
+  { label: "Dashboard", mobileLabel: "Home", icon: LayoutDashboard, path: "/dashboard", external: true },
+  { label: "Tarefas", mobileLabel: "Tarefas", icon: ClipboardList, path: "/tarefas", external: true },
+  { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda", external: true },
+  { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos", external: true },
+  { label: "Responsáveis", mobileLabel: "Resp.", icon: UserCheck, path: "/responsaveis", external: false },
+  { label: "Relatórios", mobileLabel: "Relatórios", icon: BarChart3, path: "/relatorios", external: false },
+  { label: "Alertas", mobileLabel: "Alertas", icon: Bell, path: "/alertas", external: true },
+  { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu", external: false },
 ];
-
-const mobileNavItems = navItems.filter((i) =>
-  ["/dashboard", "/tarefas", "/processos", "/alertas", "/menu"].includes(i.path)
-);
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
+
+  const isExternal = hasRole(["advogado_externo"]);
+  const navItems = isExternal ? allNavItems.filter((i) => i.external) : allNavItems;
+  const mobileNavItems = navItems.filter((i) =>
+    ["/dashboard", "/tarefas", "/processos", "/alertas", "/menu"].includes(i.path)
+  );
 
   const isActive = (path: string) => location.pathname === path || (path !== "/dashboard" && location.pathname.startsWith(path));
 
