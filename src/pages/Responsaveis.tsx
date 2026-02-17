@@ -118,28 +118,34 @@ export default function Responsaveis() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
+    <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Responsáveis</h1>
-        <Button onClick={openNew} size="sm" className="gap-2">
+        <div>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Responsáveis</h1>
+          <p className="text-sm text-muted-foreground font-medium">
+            <span className="text-foreground font-semibold">{filtered.length}</span> responsável(is)
+          </p>
+        </div>
+        <Button onClick={openNew} size="sm" className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" style={{ background: "var(--gradient-primary)" }}>
           <Plus className="h-4 w-4" />
           Novo Responsável
         </Button>
       </div>
 
-      <div className="relative mb-4">
+      <div className="relative mb-5">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar por nome, telefone ou função..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
+          className="pl-10 h-11 rounded-xl border-input/60 bg-background/50 transition-all focus:border-primary focus:shadow-glow-primary/10"
+          aria-label="Buscar responsáveis"
         />
       </div>
 
-      <div className="space-y-3">
-        {filtered.map((r) => (
-          <div key={r.id} className="rounded-lg border bg-card p-4">
+      <div className="space-y-2">
+        {filtered.map((r, index) => (
+          <div key={r.id} className="group rounded-xl border bg-card p-4 shadow-soft transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 40}ms` }}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -181,10 +187,10 @@ export default function Responsaveis() {
                 </div>
               </div>
               <div className="flex shrink-0 gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground" onClick={() => openEdit(r)} aria-label="Editar responsável">
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(r.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive" onClick={() => setDeleteId(r.id)} aria-label="Excluir responsável">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -192,8 +198,12 @@ export default function Responsaveis() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhum responsável encontrado.
+          <div className="rounded-xl border border-dashed p-12 text-center animate-in fade-in duration-300">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
+              <UserCheck className="h-7 w-7 text-muted-foreground/50" />
+            </div>
+            <p className="text-sm font-semibold text-muted-foreground">Nenhum responsável encontrado</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Tente ajustar a busca ou cadastre um novo</p>
           </div>
         )}
       </div>

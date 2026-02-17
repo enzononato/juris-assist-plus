@@ -78,15 +78,15 @@ export default function Alertas() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Central de Alertas</h1>
-        <p className="text-sm text-muted-foreground">
+      <div className="mb-6">
+        <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Central de Alertas</h1>
+        <p className="text-sm text-muted-foreground font-medium">
           {untreatedCount > 0 ? (
-            <span className="font-medium text-destructive">{untreatedCount} alerta{untreatedCount !== 1 ? "s" : ""} não tratado{untreatedCount !== 1 ? "s" : ""}</span>
+            <span className="font-semibold text-destructive">{untreatedCount} alerta{untreatedCount !== 1 ? "s" : ""} não tratado{untreatedCount !== 1 ? "s" : ""}</span>
           ) : (
-            <span className="text-success font-medium">Todos tratados ✓</span>
+            <span className="text-success font-semibold">✓ Todos tratados</span>
           )}
         </p>
       </div>
@@ -339,10 +339,10 @@ function AlertCard({ alert: a, caso, onToggle, onSnooze, onAssign }: {
 }) {
   return (
     <div className={cn(
-      "group rounded-xl border-l-4 p-3 shadow-sm transition-all sm:p-4",
+      "group rounded-xl border-l-4 p-3 shadow-soft transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 sm:p-4",
       severityStyles[a.severity],
       a.treated && "opacity-50"
-    )}>
+    )} role="article" aria-label={`Alerta: ${a.title}`}>
       <div className="flex items-start gap-3">
         <div className={cn("mt-0.5 shrink-0",
           a.severity === "urgente" ? "text-destructive" :
