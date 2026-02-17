@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Plus, Shield, Edit, Search, Mail, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, Plus, Shield, Edit, Search, Mail, Phone, ChevronDown, ChevronUp, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { mockResponsaveis } from "@/data/mock";
+import { Checkbox } from "@/components/ui/checkbox";
+import { mockResponsaveis, mockCompanies } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,22 @@ export default function UsuariosPermissoes() {
   const [addOpen, setAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [selectedRevendas, setSelectedRevendas] = useState<string[]>([]);
+  const [newUserRole, setNewUserRole] = useState<Role | "">("");
+
+  const toggleRevenda = (id: string) => {
+    setSelectedRevendas((prev) =>
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllRevendas = () => {
+    if (selectedRevendas.length === mockCompanies.length) {
+      setSelectedRevendas([]);
+    } else {
+      setSelectedRevendas(mockCompanies.map((c) => c.id));
+    }
+  };
 
   const filtered = mockUsers.filter((u) =>
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -52,17 +69,65 @@ export default function UsuariosPermissoes() {
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>Novo Usuário</DialogTitle></DialogHeader>
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); toast({ title: "Usuário criado (Demo)" }); setAddOpen(false); }}>
+            <form className="space-y-4" onSubmit={(e) => {
+              e.preventDefault();
+              if (selectedRevendas.length === 0) {
+                toast({ title: "Selecione ao menos uma revenda", variant: "destructive" });
+                return;
+              }
+              toast({
+                title: "Usuário criado (Demo)",
+                description: `Acesso a ${selectedRevendas.length} revenda(s)`,
+              });
+              setAddOpen(false);
+              setSelectedRevendas([]);
+              setNewUserRole("");
+            }}>
               <div className="space-y-2"><Label>Nome *</Label><Input required /></div>
               <div className="space-y-2"><Label>E-mail *</Label><Input type="email" required /></div>
               <div className="space-y-2"><Label>Telefone</Label><Input /></div>
               <div className="space-y-2">
-                <Label>Role *</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <Label>Perfil *</Label>
+                <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as Role)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-primary" />
+                    Revendas com Acesso *
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={selectAllRevendas}
+                    className="text-[10px] font-semibold text-primary hover:underline"
+                  >
+                    {selectedRevendas.length === mockCompanies.length ? "Desmarcar todas" : "Selecionar todas"}
+                  </button>
+                </div>
+                {selectedRevendas.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {selectedRevendas.length} de {mockCompanies.length} revenda(s) selecionada(s)
+                  </p>
+                )}
+                <div className="max-h-40 overflow-y-auto rounded-lg border bg-muted/20 p-2 space-y-1">
+                  {mockCompanies.map((company) => (
+                    <label
+                      key={company.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedRevendas.includes(company.id)}
+                        onCheckedChange={() => toggleRevenda(company.id)}
+                      />
+                      <span className="text-xs font-medium">{company.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <Button type="submit" className="w-full">Criar Usuário</Button>
             </form>
