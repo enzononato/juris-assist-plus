@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Plus, FileText, Upload, Clock, AlertTriangle, CheckCircle2, XCircle,
   Filter, Download, Eye, Shield, Hash, ChevronDown, ChevronUp,
-  History, Search,
+  History, Search, Link2, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import AIClassifierSuggestion from "@/components/provas/AIClassifierSuggestion";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   type EvidenceRequest, type EvidenceItem, type EvidenceCategory, type EvidenceOrigin,
@@ -499,26 +500,140 @@ function NewRequestForm({ onClose }: { onClose: () => void }) {
 }
 
 function UploadForm({ requests, onClose }: { requests: EvidenceRequest[]; onClose: () => void }) {
+  const [filename, setFilename] = useState("");
+  const [showAI, setShowAI] = useState(false);
+  const [aiAccepted, setAiAccepted] = useState(false);
+  const [uploadMode, setUploadMode] = useState<"file" | "drive" | "email">("file");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedOrigin, setSelectedOrigin] = useState("");
+
+  const handleFileSelect = () => {
+    // Simulate file selection
+    const mockFiles = ["espelho_ponto_abr2024.pdf", "escala_maio2024.xlsx", "registro_cftv_sala.mp4", "atestado_jun2024.pdf", "treinamento_nr12.pdf"];
+    const selected = mockFiles[Math.floor(Math.random() * mockFiles.length)];
+    setFilename(selected);
+    setShowAI(true);
+    setAiAccepted(false);
+  };
+
+  const handleAIAccept = (suggestion: { category: string; origin: string }) => {
+    setSelectedCategory(suggestion.category);
+    setSelectedOrigin(suggestion.origin);
+    setAiAccepted(true);
+    toast({ title: "✅ Classificação aceita", description: "Categoria e origem preenchidos automaticamente pela IA." });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Evidência anexada", description: "Hash SHA-256 gerado e metadados salvos. (Demo)" });
+    const modeLabel = uploadMode === "drive" ? "Link do Drive salvo" : uploadMode === "email" ? "Anexo de e-mail vinculado" : "Hash SHA-256 gerado";
+    toast({ title: "Evidência anexada", description: `${modeLabel} e metadados salvos. (Demo)` });
     onClose();
   };
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="space-y-2">
-        <Label>Arquivo *</Label>
-        <div className="rounded-lg border-2 border-dashed p-6 text-center hover:bg-accent/20 transition-colors cursor-pointer">
-          <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-          <p className="text-xs text-muted-foreground">Arraste ou clique para selecionar</p>
-          <Input type="file" className="hidden" />
-        </div>
+      {/* Upload mode selector */}
+      <div className="flex gap-1.5">
+        <Button type="button" variant={uploadMode === "file" ? "default" : "outline"} size="sm" className="gap-1.5 text-xs flex-1" onClick={() => setUploadMode("file")}>
+          <Upload className="h-3.5 w-3.5" /> Arquivo
+        </Button>
+        <Button type="button" variant={uploadMode === "drive" ? "default" : "outline"} size="sm" className="gap-1.5 text-xs flex-1" onClick={() => setUploadMode("drive")}>
+          <Link2 className="h-3.5 w-3.5" /> Google Drive
+        </Button>
+        <Button type="button" variant={uploadMode === "email" ? "default" : "outline"} size="sm" className="gap-1.5 text-xs flex-1" onClick={() => setUploadMode("email")}>
+          <Mail className="h-3.5 w-3.5" /> E-mail
+        </Button>
       </div>
+
+      {/* File upload */}
+      {uploadMode === "file" && (
+        <div className="space-y-2">
+          <Label>Arquivo *</Label>
+          <div
+            className="rounded-lg border-2 border-dashed p-6 text-center hover:bg-accent/20 transition-colors cursor-pointer"
+            onClick={handleFileSelect}
+          >
+            {filename ? (
+              <div>
+                <FileText className="mx-auto h-6 w-6 text-primary mb-2" />
+                <p className="text-xs font-medium">{filename}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Clique para alterar</p>
+              </div>
+            ) : (
+              <div>
+                <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+                <p className="text-xs text-muted-foreground">Arraste ou clique para selecionar</p>
+              </div>
+            )}
+            <Input type="file" className="hidden" />
+          </div>
+        </div>
+      )}
+
+      {/* Drive link */}
+      {uploadMode === "drive" && (
+        <div className="space-y-2">
+          <Label>Link do Google Drive *</Label>
+          <Input placeholder="https://drive.google.com/file/d/..." className="text-xs" onChange={(e) => {
+            if (e.target.value.length > 10) {
+              setFilename("documento_drive.pdf");
+              setShowAI(true);
+            }
+          }} />
+          <div className="rounded-lg border border-dashed bg-muted/30 p-2">
+            <p className="text-[10px] text-muted-foreground">
+              📁 Cole o link de compartilhamento do Google Drive. O arquivo será referenciado e uma cópia será preservada com hash SHA-256.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Email ingest */}
+      {uploadMode === "email" && (
+        <div className="space-y-2">
+          <Label>Selecionar e-mail recebido</Label>
+          <div className="space-y-1.5">
+            {[
+              { id: "ingest-1", from: "joao.dp@revalle.com.br", subject: "Espelhos de ponto - Abr/2024", date: "16/02/2026 14:30", attachment: "espelho_ponto_abr2024.pdf" },
+              { id: "ingest-2", from: "maria.rh@revalle.com.br", subject: "Escalas Mai/2024", date: "16/02/2026 10:15", attachment: "escala_maio2024.xlsx" },
+              { id: "ingest-3", from: "seguranca@revalle.com.br", subject: "RE: Solicitação registros CFTV", date: "15/02/2026 16:00", attachment: "registro_cftv_sala.mp4" },
+            ].map((email) => (
+              <div
+                key={email.id}
+                className="flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer hover:bg-accent/20 transition-colors"
+                onClick={() => { setFilename(email.attachment); setShowAI(true); }}
+              >
+                <Mail className="mt-0.5 h-3.5 w-3.5 text-primary shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium truncate">{email.subject}</p>
+                  <p className="text-[10px] text-muted-foreground">De: {email.from} · {email.date}</p>
+                  <p className="text-[10px] text-muted-foreground">📎 {email.attachment}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-lg border border-dashed bg-info/5 p-2">
+            <p className="text-[10px] text-muted-foreground">
+              📧 E-mails recebidos em <strong>provas@revalle.com.br</strong> são listados automaticamente. Anexos viram evidências pendentes ao selecionar.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* AI Classifier */}
+      {showAI && filename && !aiAccepted && (
+        <AIClassifierSuggestion
+          filename={filename}
+          onAccept={handleAIAccept}
+          onDismiss={() => { setShowAI(false); setAiAccepted(false); }}
+        />
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label>Categoria *</Label>
-          <Select><SelectTrigger className="text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
             <SelectContent>
               {Object.entries(evidenceCategoryLabels).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -528,7 +643,8 @@ function UploadForm({ requests, onClose }: { requests: EvidenceRequest[]; onClos
         </div>
         <div className="space-y-2">
           <Label>Origem *</Label>
-          <Select><SelectTrigger className="text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+          <Select value={selectedOrigin} onValueChange={setSelectedOrigin}>
+            <SelectTrigger className="text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
             <SelectContent>
               {Object.entries(evidenceOriginLabels).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -561,6 +677,7 @@ function UploadForm({ requests, onClose }: { requests: EvidenceRequest[]; onClos
       <div className="rounded-lg border border-dashed bg-muted/30 p-3">
         <p className="text-xs text-muted-foreground">
           🔒 O hash SHA-256 será gerado automaticamente para preservação de integridade.
+          {aiAccepted && " ✅ Classificação IA aplicada."}
         </p>
       </div>
       <Button type="submit" className="w-full">Enviar Evidência</Button>

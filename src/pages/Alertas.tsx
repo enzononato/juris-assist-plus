@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Bell, CalendarDays, Clock, FileText, CheckCircle2, BellOff,
   ExternalLink, UserPlus, AlarmClock, MoreHorizontal, ArrowUpRight,
-  Mail, AlertTriangle, TrendingUp,
+  Mail, AlertTriangle, TrendingUp, MessageCircle, Phone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,13 +42,13 @@ const severityBadge: Record<AlertSeverity, string> = {
   urgente: "bg-destructive/10 text-destructive",
 };
 
-type MainTab = "alertas" | "escalonamento" | "emails";
+type MainTab = "alertas" | "escalonamento" | "emails" | "whatsapp";
 type AlertTab = "todos" | "importantes" | "prazo" | "audiencia" | "tarefa" | "prova" | "publicacao";
 
 export default function Alertas() {
   const [mainTab, setMainTab] = useState<MainTab>("alertas");
   const [alertTab, setAlertTab] = useState<AlertTab>("todos");
-  const { alerts, escalations, emailLogs, untreatedCount, toggleTreated, snooze } = useAlerts();
+  const { alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze } = useAlerts();
 
   const filtered = (() => {
     switch (alertTab) {
@@ -109,6 +109,9 @@ export default function Alertas() {
             </TabsTrigger>
             <TabsTrigger value="emails" className="gap-1.5 text-xs">
               <Mail className="h-3.5 w-3.5" /> E-mails ({emailLogs.length})
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="gap-1.5 text-xs">
+              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp ({whatsappLogs.length})
             </TabsTrigger>
           </TabsList>
         </div>
@@ -252,6 +255,59 @@ export default function Alertas() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Para: <span className="font-medium">{log.to}</span>
                       </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge className={cn("text-[9px] border-0",
+                          log.status === "enviado" ? "bg-success/15 text-success" : "bg-destructive/10 text-destructive"
+                        )}>
+                          {log.status === "enviado" ? "✓ Enviado" : "✗ Falha"}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(log.sent_at).toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* WHATSAPP TAB */}
+        <TabsContent value="whatsapp">
+          <div className="mb-4 rounded-lg border border-success/20 bg-success/5 p-3">
+            <div className="flex items-center gap-2 text-xs">
+              <MessageCircle className="h-4 w-4 text-success" />
+              <span className="font-semibold text-success">Notificações via WhatsApp</span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Alertas urgentes e de audiência são enviados automaticamente via WhatsApp para os responsáveis configurados.
+              Canais configurados na tela <strong>Regras de Alertas</strong>.
+            </p>
+          </div>
+
+          {whatsappLogs.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-12 text-center">
+              <MessageCircle className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">Nenhuma mensagem WhatsApp enviada ainda.</p>
+              <p className="text-xs text-muted-foreground mt-1">Aguarde... mensagens são simuladas automaticamente.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {whatsappLogs.map((log) => (
+                <div key={log.id} className="rounded-xl border bg-card p-4">
+                  <div className="flex items-start gap-3">
+                    <MessageCircle className={cn("mt-0.5 h-4 w-4 shrink-0", log.status === "enviado" ? "text-success" : "text-destructive")} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{log.to_name}</p>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <Phone className="h-2.5 w-2.5" /> {log.to_phone}
+                        </span>
+                      </div>
+                      <pre className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed bg-muted/30 rounded-lg p-2">
+                        {log.message}
+                      </pre>
                       <div className="mt-1 flex items-center gap-2">
                         <Badge className={cn("text-[9px] border-0",
                           log.status === "enviado" ? "bg-success/15 text-success" : "bg-destructive/10 text-destructive"

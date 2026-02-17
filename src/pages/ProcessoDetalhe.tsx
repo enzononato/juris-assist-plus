@@ -27,6 +27,7 @@ import ProcessoResumoTab from "@/components/processo/ProcessoResumoTab";
 import ProcessoAIResumoTab from "@/components/processo/ProcessoAIResumoTab";
 import NovaAudienciaDialog from "@/components/processo/NovaAudienciaDialog";
 import NovoPrazoDialog from "@/components/processo/NovoPrazoDialog";
+import PacoteAudienciaDialog from "@/components/processo/PacoteAudienciaDialog";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -219,25 +220,28 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="audiencias">
           <div className="space-y-3">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <NovaAudienciaDialog caseId={id} />
             </div>
             {hearings.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma audiência cadastrada.</p>}
             {hearings.map((h) => (
-              <div key={h.id} className="flex items-center gap-3 rounded-lg border bg-card p-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{h.type}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(h.date).toLocaleDateString("pt-BR")} às {h.time}</p>
-                  <p className="text-xs text-muted-foreground">{h.court}</p>
-                  <Badge variant="outline" className="mt-2 text-[10px]">{h.status}</Badge>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar audiência (Demo)" })}>
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Audiência excluída (Demo)" })}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+              <div key={h.id} className="rounded-lg border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{h.type}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(h.date).toLocaleDateString("pt-BR")} às {h.time}</p>
+                    <p className="text-xs text-muted-foreground">{h.court}</p>
+                    <Badge variant="outline" className="mt-2 text-[10px]">{h.status}</Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <PacoteAudienciaDialog hearing={h} evidenceItems={evidenceItems} checklists={checklists} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar audiência (Demo)" })}>
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Audiência excluída (Demo)" })}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

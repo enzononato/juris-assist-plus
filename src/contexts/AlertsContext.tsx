@@ -21,10 +21,21 @@ export interface EmailLog {
   sent_at: string;
 }
 
+export interface WhatsAppLog {
+  id: string;
+  alert_id: string;
+  to_name: string;
+  to_phone: string;
+  message: string;
+  status: "enviado" | "falha";
+  sent_at: string;
+}
+
 interface AlertsContextType {
   alerts: Alert[];
   escalations: EscalationLog[];
   emailLogs: EmailLog[];
+  whatsappLogs: WhatsAppLog[];
   untreatedCount: number;
   toggleTreated: (id: string) => void;
   snooze: (id: string, duration: string) => void;
@@ -37,6 +48,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
   const [escalations, setEscalations] = useState<EscalationLog[]>([]);
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+  const [whatsappLogs, setWhatsappLogs] = useState<WhatsAppLog[]>([]);
   const [simulated, setSimulated] = useState(false);
 
   const untreatedCount = alerts.filter((a) => !a.treated).length;
@@ -74,9 +86,23 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         ...prev,
       ]);
 
+      // Simulate WhatsApp notification
+      setWhatsappLogs((prev) => [
+        {
+          id: "wa-1",
+          alert_id: "auto-1",
+          to_name: "Ana Jurídico",
+          to_phone: "(74) 99912-3456",
+          message: "⚠️ *Audiência em 2 dias*\n📋 Processo: 0005678-90.2024.5.02.0002\n👤 Maria Fernanda Oliveira\n📅 25/02/2026 às 10:00\n⚡ Checklist pré-audiência pendente!",
+          status: "enviado",
+          sent_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+
       toast({
         title: "🔔 Novo Alerta Automático",
-        description: "Audiência em 2 dias – checklist pendente!",
+        description: "Audiência em 2 dias – notificado via e-mail e WhatsApp!",
       });
     }, 3000);
 
@@ -196,7 +222,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AlertsContext.Provider value={{ alerts, escalations, emailLogs, untreatedCount, toggleTreated, snooze }}>
+    <AlertsContext.Provider value={{ alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze }}>
       {children}
     </AlertsContext.Provider>
   );
