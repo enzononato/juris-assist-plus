@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle2, FileText,
   Building2, Filter, Download, Users, Shield, CalendarDays, Printer, Share2,
+  Calendar,
 } from "lucide-react";
+import { subMonths, subDays, startOfYear, isAfter, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, AreaChart, Area, RadarChart, Radar,
@@ -21,6 +26,34 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
+type PeriodFilter = "todos" | "7d" | "30d" | "3m" | "6m" | "1a" | "ytd" | "custom";
+
+const periodLabels: Record<PeriodFilter, string> = {
+  todos: "Todo o período",
+  "7d": "Últimos 7 dias",
+  "30d": "Último mês",
+  "3m": "Último trimestre",
+  "6m": "Últimos 6 meses",
+  "1a": "Último ano",
+  ytd: "Ano atual (YTD)",
+  custom: "Personalizado",
+};
+
+function getPeriodStartDate(period: PeriodFilter, customStart?: Date): Date | null {
+  const now = new Date();
+  switch (period) {
+    case "todos": return null;
+    case "7d": return subDays(now, 7);
+    case "30d": return subMonths(now, 1);
+    case "3m": return subMonths(now, 3);
+    case "6m": return subMonths(now, 6);
+    case "1a": return subMonths(now, 12);
+    case "ytd": return startOfYear(now);
+    case "custom": return customStart || null;
+    default: return null;
+  }
+}
+
 const CHART_COLORS = [
   "hsl(230, 65%, 48%)",
   "hsl(38, 92%, 50%)",
@@ -32,11 +65,26 @@ const CHART_COLORS = [
 
 export default function Relatorios() {
   const [companyFilter, setCompanyFilter] = useState("todas");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("todos");
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [tab, setTab] = useState("visao-geral");
 
-  const filteredCases = companyFilter === "todas"
-    ? mockCases
-    : mockCases.filter((c) => c.company_id === companyFilter);
+  const periodStart = getPeriodStartDate(periodFilter, customStartDate);
+  const periodEnd = periodFilter === "custom" && customEndDate ? customEndDate : new Date();
+
+  const filteredCases = useMemo(() => {
+    let cases = companyFilter === "todas"
+      ? mockCases
+      : mockCases.filter((c) => c.company_id === companyFilter);
+    if (periodStart) {
+      cases = cases.filter((c) => {
+        const filed = new Date(c.filed_at);
+        return isAfter(filed, periodStart) && !isAfter(filed, periodEnd);
+      });
+    }
+    return cases;
+  }, [companyFilter, periodStart, periodEnd]);
   const caseIds = new Set(filteredCases.map((c) => c.id));
 
   // KPIs
@@ -136,6 +184,65 @@ export default function Relatorios() {
               {mockCompanies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
+            <SelectTrigger className="w-[180px] h-9 text-xs rounded-xl" aria-label="Filtrar por período">
+              <Calendar className="mr-1.5 h-3.5 w-3.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {(Object.entries(periodLabels) as [PeriodFilter, string][]).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {periodFilter === "custom" && (
+            <div className="flex items-center gap-1.5">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 text-xs rounded-xl gap-1.5", !customStartDate && "text-muted-foreground")}>
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {customStartDate ? format(customStartDate, "dd/MM/yy") : "Início"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarPicker
+                    mode="single"
+                    selected={customStartDate}
+                    onSelect={setCustomStartDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 text-xs rounded-xl gap-1.5", !customEndDate && "text-muted-foreground")}>
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {customEndDate ? format(customEndDate, "dd/MM/yy") : "Fim"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarPicker
+                    mode="single"
+                    selected={customEndDate}
+                    onSelect={setCustomEndDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {periodFilter !== "todos" && (
+            <Badge variant="outline" className="h-9 rounded-xl text-xs px-3 flex items-center gap-1.5 bg-primary/5 border-primary/20">
+              <Calendar className="h-3 w-3 text-primary" />
+              {filteredCases.length} processo{filteredCases.length !== 1 ? "s" : ""} no período
+            </Badge>
+          )}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
