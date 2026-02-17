@@ -91,7 +91,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         {
           id: "wa-1",
           alert_id: "auto-1",
-          to_name: "Ana Jurídico",
+          to_name: "Thiago",
           to_phone: "(74) 99912-3456",
           message: "⚠️ *Audiência em 2 dias*\n📋 Processo: 0005678-90.2024.5.02.0002\n👤 Maria Fernanda Oliveira\n📅 25/02/2026 às 10:00\n⚡ Checklist pré-audiência pendente!",
           status: "enviado",
@@ -125,7 +125,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         {
           id: "em-sla-48",
           alert_id: "auto-sla-48",
-          to: "joao.dp@revalle.com.br",
+          to: "sandra@revalle.com.br",
           subject: "⚠️ SLA Em Risco (48h): Provas pendentes – Assédio Moral",
           status: "enviado",
           sent_at: new Date().toISOString(),
@@ -158,7 +158,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         {
           id: "em-sla-72",
           alert_id: "auto-sla-72",
-          to: "ana@revalle.com.br",
+          to: "thiago@revalle.com.br",
           subject: "🔴 SLA ESTOURADO (72h): Provas não entregues – Assédio Moral",
           status: "enviado",
           sent_at: new Date().toISOString(),
@@ -180,7 +180,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
           id: "esc-1",
           alert_id: "2",
           alert_title: "Prazo vencendo em 2 dias",
-          escalated_to: "Ana Jurídico (Gestora)",
+          escalated_to: "Thiago (Gestor)",
           reason: "Alerta urgente não tratado há 4+ horas",
           created_at: new Date().toISOString(),
         },
@@ -191,7 +191,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         {
           id: "em-2",
           alert_id: "2",
-          to: "ana@revalle.com.br",
+          to: "thiago@revalle.com.br",
           subject: "🔺 ESCALONAMENTO: Prazo vencendo – não tratado há 4h",
           status: "enviado",
           sent_at: new Date().toISOString(),
@@ -201,7 +201,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
       toast({
         title: "🔺 Escalonamento ativado",
-        description: "Alerta urgente escalonado para gestora Ana Jurídico.",
+        description: "Alerta urgente escalonado para gestor Thiago.",
       });
     }, 6000);
 

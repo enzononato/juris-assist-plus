@@ -98,7 +98,7 @@ export default function ProvasTab({ requests, items, caseId }: Props) {
     if (isConfidential) {
       toast({
         title: "📄 Download com marca d'água",
-        description: `Arquivo "${item.filename}" baixado com marca d'água (Ana Jurídico · ${new Date().toLocaleString("pt-BR")}). Registrado no log de auditoria.`,
+        description: `Arquivo "${item.filename}" baixado com marca d'água (Thiago · ${new Date().toLocaleString("pt-BR")}). Registrado no log de auditoria.`,
       });
     } else {
       toast({

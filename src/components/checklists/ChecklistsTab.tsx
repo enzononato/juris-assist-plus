@@ -27,7 +27,7 @@ export default function ChecklistsTab({ checklists: initialChecklists }: Props) 
                   ? {
                       ...item,
                       checked: !item.checked,
-                      checked_by: !item.checked ? "Ana Jurídico" : undefined,
+                      checked_by: !item.checked ? "Thiago" : undefined,
                       checked_at: !item.checked ? new Date().toISOString() : undefined,
                     }
                   : item
