@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, ChevronRight, Shield, Building2, CalendarDays, Clock, Scale } from "lucide-react";
+import { Search, Plus, ChevronRight, Shield, Building2, CalendarDays, Clock, Scale, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { statusLabels, type CaseStatus } from "@/data/mock";
 import { useTenantData } from "@/hooks/useTenantData";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<CaseStatus, string> = {
@@ -20,6 +21,8 @@ const statusColors: Record<CaseStatus, string> = {
 
 export default function Processos() {
   const { cases, companies } = useTenantData();
+  const { hasRole } = useAuth();
+  const isExternal = hasRole(["advogado_externo"]);
   const [search, setSearch] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
 
@@ -37,15 +40,24 @@ export default function Processos() {
     <div className="p-4 md:p-6 lg:p-8">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Processos</h1>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            {isExternal ? "Meus Processos" : "Processos"}
+          </h1>
           <p className="text-sm text-muted-foreground">{filtered.length} processos encontrados</p>
+          {isExternal && (
+            <Badge variant="outline" className="mt-1 text-[10px] gap-1">
+              <Eye className="h-2.5 w-2.5" /> Portal do Advogado Externo
+            </Badge>
+          )}
         </div>
-        <Button className="gap-2" size="sm" asChild>
-          <Link to="/processos/novo">
-            <Plus className="h-4 w-4" />
-            Novo Processo
-          </Link>
-        </Button>
+        {!isExternal && (
+          <Button className="gap-2" size="sm" asChild>
+            <Link to="/processos/novo">
+              <Plus className="h-4 w-4" />
+              Novo Processo
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">

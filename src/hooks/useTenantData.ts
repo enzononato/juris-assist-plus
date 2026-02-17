@@ -12,10 +12,10 @@ import {
 
 /**
  * Returns mock data filtered by the logged-in user's tenant (company_id).
- * Users with company_id === "all" see everything.
+ * Also filters ultra_restrito cases for non-authorized roles.
  */
 export function useTenantData() {
-  const { user, canAccessCompany } = useAuth();
+  const { user, canAccessCompany, hasRole } = useAuth();
 
   return useMemo(() => {
     if (!user) {
@@ -30,7 +30,14 @@ export function useTenantData() {
       };
     }
 
-    const cases = mockCases.filter((c) => canAccessCompany(c.company_id));
+    const canSeeConfidential = hasRole(["admin", "responsavel_juridico_interno"]);
+
+    const cases = mockCases.filter((c) => {
+      if (!canAccessCompany(c.company_id)) return false;
+      // ACL: hide ultra_restrito from non-authorized users
+      if (c.confidentiality === "ultra_restrito" && !canSeeConfidential) return false;
+      return true;
+    });
     const caseIds = new Set(cases.map((c) => c.id));
 
     return {
@@ -42,5 +49,5 @@ export function useTenantData() {
       companies: user.company_id === "all" ? mockCompanies : mockCompanies.filter((c) => c.id === user.company_id),
       employees: user.company_id === "all" ? mockEmployees : mockEmployees.filter((e) => e.company_id === user.company_id),
     };
-  }, [user, canAccessCompany]);
+  }, [user, canAccessCompany, hasRole]);
 }
