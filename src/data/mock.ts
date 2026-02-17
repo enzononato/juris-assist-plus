@@ -33,6 +33,7 @@ export interface Case {
   filed_at: string;
   next_hearing?: string;
   next_deadline?: string;
+  amount?: number;
 }
 
 export interface Task {
@@ -271,6 +272,7 @@ export const mockCases: Case[] = [
     filed_at: '2024-03-15',
     next_hearing: '2026-03-10T14:00:00',
     next_deadline: '2026-02-28',
+    amount: 85000,
   },
   {
     id: '2',
@@ -289,6 +291,7 @@ export const mockCases: Case[] = [
     filed_at: '2024-06-20',
     next_hearing: '2026-02-25T10:00:00',
     next_deadline: '2026-02-20',
+    amount: 120000,
   },
   {
     id: '3',
@@ -306,6 +309,7 @@ export const mockCases: Case[] = [
     confidentiality: 'ultra_restrito',
     filed_at: '2025-01-10',
     next_deadline: '2026-03-05',
+    amount: 250000,
   },
   {
     id: '4',
@@ -322,6 +326,7 @@ export const mockCases: Case[] = [
     lawyer: 'Cintia',
     confidentiality: 'normal',
     filed_at: '2024-09-05',
+    amount: 45000,
   },
   {
     id: '5',
@@ -339,6 +344,7 @@ export const mockCases: Case[] = [
     confidentiality: 'normal',
     filed_at: '2024-11-12',
     next_deadline: '2026-03-15',
+    amount: 175000,
   },
 ];
 

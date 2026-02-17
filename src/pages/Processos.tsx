@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Search, Plus, ChevronRight, Shield, Building2, CalendarDays, Clock,
   Scale, Eye, LayoutList, LayoutGrid, Columns3, Filter, User, Gavel,
-  AlertTriangle, CheckCircle2, FileText, TrendingUp,
+  AlertTriangle, CheckCircle2, FileText, TrendingUp, DollarSign,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ import { statusLabels, type CaseStatus, type Case } from "@/data/mock";
 import { useTenantData } from "@/hooks/useTenantData";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+
+const formatCurrency = (value?: number) =>
+  value != null ? value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
 
 const statusColors: Record<CaseStatus, string> = {
   novo: "bg-info/15 text-info border-info/30",
@@ -93,7 +96,14 @@ function ProcessCardGrid({ c, index }: { c: Case; index: number }) {
           <span className="text-[11px] text-primary font-medium truncate">{c.company}</span>
         </div>
 
-        <Badge variant="secondary" className="text-[10px] font-medium w-fit">{c.theme}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-[10px] font-medium w-fit">{c.theme}</Badge>
+          {c.amount != null && (
+            <span className="text-[11px] font-semibold text-foreground">
+              {formatCurrency(c.amount)}
+            </span>
+          )}
+        </div>
 
         <div className="mt-auto pt-2 border-t border-border/50 flex items-center justify-between gap-2">
           <div className="flex flex-col gap-1 min-w-0">
@@ -167,6 +177,11 @@ function ProcessCardList({ c, index }: { c: Case; index: number }) {
             {statusLabels[c.status]}
           </Badge>
           <Badge variant="secondary" className="text-[10px] font-medium">{c.theme}</Badge>
+          {c.amount != null && (
+            <span className="text-[11px] font-semibold text-foreground">
+              {formatCurrency(c.amount)}
+            </span>
+          )}
           {isUrgent && (
             <Badge variant="outline" className="text-[9px] font-semibold bg-destructive/10 text-destructive border-destructive/30 gap-1">
               <AlertTriangle className="h-2.5 w-2.5" /> {daysUntilDeadline}d
@@ -234,6 +249,9 @@ function KanbanColumn({ status, cases }: { status: CaseStatus; cases: Case[] }) 
             </div>
             <p className="text-[10px] text-primary font-medium truncate mb-1.5">{c.company}</p>
             <Badge variant="secondary" className="text-[9px]">{c.theme}</Badge>
+            {c.amount != null && (
+              <p className="text-[10px] font-semibold text-foreground mt-1">{formatCurrency(c.amount)}</p>
+            )}
             <div className="mt-2 flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
                 {c.next_deadline && (
