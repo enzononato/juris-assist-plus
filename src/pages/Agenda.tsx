@@ -18,6 +18,7 @@ import {
   mockHearings, mockDeadlines, mockTasks, mockCases, mockCompanies,
 } from "@/data/mock";
 import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
 
 // ── Constants ──
 const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -205,7 +206,7 @@ function EventModal({ event, onClose }: { event: CalendarEvent; onClose: () => v
 }
 
 // ── Side Panel ──
-function SidePanel({ date, events, onEventClick }: { date: Date; events: CalendarEvent[]; onEventClick: (e: CalendarEvent) => void }) {
+function SidePanel({ date, events, onEventClick, onDateChange }: { date: Date; events: CalendarEvent[]; onEventClick: (e: CalendarEvent) => void; onDateChange: (d: Date) => void }) {
   const dayLabel = `${date.getDate()} de ${MONTHS[date.getMonth()]}`;
   const weekday = WEEKDAYS_FULL[date.getDay()];
   const isCurrentDay = isSameDay(date, TODAY);
@@ -216,6 +217,39 @@ function SidePanel({ date, events, onEventClick }: { date: Date; events: Calenda
 
   return (
     <div className="w-full lg:w-[320px] shrink-0 rounded-xl border bg-card shadow-soft overflow-hidden">
+      {/* Mini Calendar */}
+      <div className="border-b">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => d && onDateChange(d)}
+          today={TODAY}
+          className="p-2 pointer-events-auto w-full"
+          classNames={{
+            months: "flex flex-col w-full",
+            month: "space-y-2 w-full",
+            caption: "flex justify-center pt-1 relative items-center",
+            caption_label: "text-xs font-semibold",
+            nav: "space-x-1 flex items-center",
+            nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+            nav_button_previous: "absolute left-1",
+            nav_button_next: "absolute right-1",
+            table: "w-full border-collapse",
+            head_row: "flex w-full",
+            head_cell: "text-muted-foreground rounded-md flex-1 font-normal text-[10px] text-center",
+            row: "flex w-full mt-1",
+            cell: "flex-1 text-center text-[11px] p-0 relative focus-within:relative focus-within:z-20",
+            day: "h-7 w-7 p-0 font-normal mx-auto flex items-center justify-center rounded-md hover:bg-accent transition-colors text-[11px] aria-selected:opacity-100",
+            day_range_end: "day-range-end",
+            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+            day_today: "bg-accent text-accent-foreground font-bold",
+            day_outside: "text-muted-foreground opacity-40",
+            day_disabled: "text-muted-foreground opacity-50",
+            day_hidden: "invisible",
+          }}
+        />
+      </div>
+
       {/* Header */}
       <div className={cn("p-4 border-b", isCurrentDay ? "bg-primary/5" : "bg-muted/30")}>
         <div className="flex items-center gap-2">
@@ -669,7 +703,7 @@ export default function Agenda() {
           {/* Side Panel - Desktop only */}
           {showSidePanel && (
             <div className="hidden lg:block animate-in fade-in slide-in-from-left-2 duration-300">
-              <SidePanel date={selectedDate} events={sidePanelEvents} onEventClick={setSelectedEvent} />
+              <SidePanel date={selectedDate} events={sidePanelEvents} onEventClick={setSelectedEvent} onDateChange={setSelectedDate} />
             </div>
           )}
         </div>
