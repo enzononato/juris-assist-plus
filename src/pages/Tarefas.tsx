@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2 } from "lucide-react";
+import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
 import { taskStatusLabels, priorityLabels, type Priority, type TaskStatus } from "@/data/mock";
 import { useTenantData } from "@/hooks/useTenantData";
 import { toast } from "@/hooks/use-toast";
@@ -34,11 +35,44 @@ const statusIcons: Record<TaskStatus, React.ReactNode> = {
 
 export default function Tarefas() {
   const [tab, setTab] = useState("todas");
+  const [search, setSearch] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("todas");
+  const [assigneeFilter, setAssigneeFilter] = useState("todos");
   const { tasks } = useTenantData();
 
-  const filtered = tab === "todas"
-    ? tasks
-    : tasks.filter((t) => t.status === tab);
+  const allAssignees = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => t.assignees.forEach((a) => set.add(a)));
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  const filtered = useMemo(() => {
+    let result = tasks;
+
+    if (tab !== "todas") {
+      result = result.filter((t) => t.status === tab);
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.employee?.toLowerCase().includes(q) ||
+        t.case_number?.toLowerCase().includes(q) ||
+        t.assignees.some((a) => a.toLowerCase().includes(q))
+      );
+    }
+
+    if (priorityFilter !== "todas") {
+      result = result.filter((t) => t.priority === priorityFilter);
+    }
+
+    if (assigneeFilter !== "todos") {
+      result = result.filter((t) => t.assignees.includes(assigneeFilter));
+    }
+
+    return result;
+  }, [tasks, tab, search, priorityFilter, assigneeFilter]);
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
     toast({ title: `Status alterado para ${taskStatusLabels[newStatus as TaskStatus]} (Demo)` });
@@ -56,6 +90,14 @@ export default function Tarefas() {
     concluida: tasks.filter(t => t.status === "concluida").length,
   };
 
+  const activeFilters = (search.trim() ? 1 : 0) + (priorityFilter !== "todas" ? 1 : 0) + (assigneeFilter !== "todos" ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearch("");
+    setPriorityFilter("todas");
+    setAssigneeFilter("todos");
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="mb-6 flex items-center justify-between">
@@ -63,11 +105,59 @@ export default function Tarefas() {
           <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Tarefas</h1>
           <p className="text-sm text-muted-foreground font-medium">
             <span className="text-foreground font-semibold">{filtered.length}</span> tarefa(s)
+            {activeFilters > 0 && <span className="text-primary"> · {activeFilters} filtro(s) ativo(s)</span>}
           </p>
         </div>
         <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
           <Link to="/tarefas/nova"><Plus className="h-4 w-4" /> Nova Tarefa</Link>
         </Button>
+      </div>
+
+      {/* Search + Filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por título, processo, reclamante ou responsável..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 rounded-lg text-sm"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="h-9 w-[140px] text-xs rounded-lg">
+              <SelectValue placeholder="Prioridade" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="todas">Todas prioridades</SelectItem>
+              {(Object.entries(priorityLabels) as [Priority, string][]).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="h-9 w-[150px] text-xs rounded-lg">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="todos">Todos responsáveis</SelectItem>
+              {allAssignees.map((a) => (
+                <SelectItem key={a} value={a}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {activeFilters > 0 && (
+            <Button variant="ghost" size="sm" className="h-9 text-xs text-muted-foreground shrink-0" onClick={clearFilters}>
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -165,7 +255,14 @@ export default function Tarefas() {
                 <ListChecks className="h-7 w-7 text-muted-foreground/50" />
               </div>
               <p className="text-sm font-semibold text-muted-foreground">Nenhuma tarefa encontrada</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Crie uma nova tarefa para começar</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                {activeFilters > 0 ? "Tente ajustar os filtros" : "Crie uma nova tarefa para começar"}
+              </p>
+              {activeFilters > 0 && (
+                <Button variant="outline" size="sm" className="mt-3 text-xs" onClick={clearFilters}>
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           )}
         </div>
