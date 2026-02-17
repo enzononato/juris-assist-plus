@@ -52,26 +52,28 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (isMobile) {
     return (
       <div className="flex min-h-svh flex-col bg-background">
-        <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b bg-card/95 px-4 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <Scale className="h-4 w-4 text-primary" />
-            <h1 className="text-base font-bold tracking-tight text-foreground">SIAG</h1>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b glass-strong px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "var(--gradient-primary)" }}>
+              <Scale className="h-3.5 w-3.5 text-primary-foreground" />
+            </div>
+            <h1 className="text-sm font-extrabold tracking-tighter text-foreground">SIAG</h1>
           </div>
           <div className="flex items-center gap-2">
             {user && (
-              <Badge variant="outline" className="text-[9px] gap-1">
+              <Badge variant="outline" className="text-[9px] gap-1 font-semibold">
                 <Shield className="h-2.5 w-2.5" />
                 {roleLabels[user.role]}
               </Badge>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={logout}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={logout}>
               <LogOut className="h-3.5 w-3.5" />
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto pb-[68px]">{children}</main>
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur-sm safe-area-pb">
-          <div className="flex h-[60px] items-center justify-around px-1">
+        <main className="flex-1 overflow-auto pb-[72px]">{children}</main>
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t glass-strong safe-area-pb">
+          <div className="flex h-[64px] items-center justify-around px-1">
             {mobileNavItems.map((item) => {
               const active = isActive(item.path);
               return (
@@ -79,17 +81,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all",
+                    "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-semibold transition-all",
                     active ? "text-primary" : "text-muted-foreground active:text-foreground"
                   )}
                 >
                   <div className={cn(
-                    "relative flex h-6 w-6 items-center justify-center rounded-full transition-all",
-                    active && "bg-primary/10"
+                    "relative flex h-7 w-7 items-center justify-center rounded-xl transition-all duration-200",
+                    active && "bg-primary/10 scale-110"
                   )}>
-                    <item.icon className={cn("h-4 w-4", active && "scale-110")} />
+                    <item.icon className={cn("h-[18px] w-[18px] transition-all", active && "text-primary")} />
                     {item.path === "/alertas" && untreatedCount > 0 && (
-                      <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground">
+                      <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-bold text-destructive-foreground shadow-sm">
                         {untreatedCount}
                       </span>
                     )}
@@ -107,19 +109,23 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-svh">
-      <aside className="sticky top-0 flex h-svh w-60 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="flex h-16 items-center gap-2 px-5">
-          <Scale className="h-6 w-6 text-sidebar-primary" />
+      <aside className="sticky top-0 flex h-svh w-[240px] flex-col bg-sidebar text-sidebar-foreground">
+        {/* Brand */}
+        <div className="flex h-16 items-center gap-3 px-5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl shadow-sm" style={{ background: "var(--gradient-primary)" }}>
+            <Scale className="h-5 w-5 text-primary-foreground" />
+          </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight">SIAG</h1>
-            <p className="text-[10px] font-medium text-sidebar-foreground/60">
+            <h1 className="text-sm font-extrabold tracking-tighter">SIAG</h1>
+            <p className="text-[10px] font-medium text-sidebar-foreground/50">
               Trabalhista – DP/Jurídico
             </p>
           </div>
         </div>
 
-        <div className="px-3 pb-2">
-          <Button asChild className="w-full gap-2" size="sm">
+        {/* Create button */}
+        <div className="px-3 pb-3">
+          <Button asChild className="w-full gap-2 rounded-xl h-10 font-semibold shadow-glow-primary/50 transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" style={{ background: "var(--gradient-primary)" }}>
             <Link to="/tarefas/nova">
               <Plus className="h-4 w-4" />
               Criar
@@ -127,46 +133,55 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </Button>
         </div>
 
-        <nav className="flex-1 space-y-0.5 px-3">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                isActive(item.path)
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              <span className="flex-1">{item.label}</span>
-              {item.path === "/alertas" && untreatedCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-                  {untreatedCount}
-                </span>
-              )}
-            </Link>
-          ))}
+        {/* Navigation */}
+        <nav className="flex-1 space-y-0.5 px-3 overflow-y-auto scrollbar-thin">
+          {navItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-all duration-200",
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                )}
+              >
+                {/* Active indicator */}
+                {active && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full" style={{ background: "var(--gradient-primary)" }} />
+                )}
+                <item.icon className={cn("h-4 w-4 transition-all duration-200", active ? "text-sidebar-primary" : "group-hover:text-sidebar-foreground/80")} />
+                <span className="flex-1">{item.label}</span>
+                {item.path === "/alertas" && untreatedCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-destructive-foreground shadow-sm" style={{ background: "var(--gradient-danger)" }}>
+                    {untreatedCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
+        {/* User */}
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-sidebar-primary-foreground shadow-sm" style={{ background: "var(--gradient-primary)" }}>
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{user?.name}</p>
-              <p className="truncate text-[11px] text-sidebar-foreground/50">
+              <p className="truncate text-sm font-semibold">{user?.name}</p>
+              <p className="truncate text-[11px] text-sidebar-foreground/40 font-medium">
                 {user ? roleLabels[user.role] : ""}
               </p>
             </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-sidebar-foreground/50 hover:text-sidebar-foreground" onClick={logout}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" onClick={logout}>
               <LogOut className="h-3.5 w-3.5" />
             </Button>
           </div>
           {user && user.company_id !== "all" && (
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-sidebar-foreground/50">
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-sidebar-foreground/40 font-medium">
               <Building2 className="h-3 w-3" />
               {user.company_name}
             </div>
@@ -174,7 +189,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto bg-background">{children}</main>
       <JuriaChatButton />
     </div>
   );

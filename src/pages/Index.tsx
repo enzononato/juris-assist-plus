@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Scale, ClipboardList, CalendarDays, Clock, AlertTriangle,
-  ChevronRight, Shield, TrendingUp, Users, Bell,
+  ChevronRight, Shield, TrendingUp, Users, Bell, Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,43 +52,46 @@ export default function Dashboard() {
     .slice(0, 5);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {user?.name?.split(" ")[0]}</h1>
-        <p className="text-sm text-muted-foreground">Visão geral do sistema jurídico trabalhista</p>
+    <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Welcome */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+          Olá, <span className="text-gradient-primary">{user?.name?.split(" ")[0]}</span>
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground font-medium">Visão geral do sistema jurídico trabalhista</p>
       </div>
 
       {/* Metric Cards */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4">
         <MetricCard
           icon={<Scale className="h-5 w-5" />}
           label="Processos Ativos"
           value={activeCases}
           total={totalCases}
-          color="text-primary"
-          bgColor="bg-primary/10"
+          gradient="var(--gradient-primary)"
+          delay={0}
         />
         <MetricCard
           icon={<ClipboardList className="h-5 w-5" />}
           label="Tarefas Pendentes"
           value={pendingTasks}
           total={tasks.length}
-          color="text-warning"
-          bgColor="bg-warning/10"
+          gradient="var(--gradient-warm)"
+          delay={1}
         />
         <MetricCard
           icon={<Clock className="h-5 w-5" />}
           label="Prazos Urgentes"
           value={urgentDeadlines.length}
-          color="text-destructive"
-          bgColor="bg-destructive/10"
+          gradient="var(--gradient-danger)"
+          delay={2}
         />
         <MetricCard
           icon={<Bell className="h-5 w-5" />}
           label="Alertas Ativos"
           value={untreatedAlerts.length}
-          color="text-warning"
-          bgColor="bg-warning/10"
+          gradient="var(--gradient-warm)"
+          delay={3}
         />
       </div>
 
@@ -96,26 +99,23 @@ export default function Dashboard() {
         {/* Urgent Alerts */}
         {untreatedAlerts.length > 0 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                Alertas Não Tratados
-              </h2>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/alertas" className="text-xs">Ver todos <ChevronRight className="ml-1 h-3 w-3" /></Link>
-              </Button>
-            </div>
+            <SectionHeader
+              icon={<AlertTriangle className="h-4 w-4 text-destructive" />}
+              title="Alertas Não Tratados"
+              linkTo="/alertas"
+              linkLabel="Ver todos"
+            />
             <div className="space-y-2">
               {untreatedAlerts.slice(0, 3).map((a) => (
                 <div
                   key={a.id}
                   className={cn(
-                    "rounded-lg border-l-4 p-3",
+                    "rounded-xl border-l-4 p-4 shadow-soft transition-all hover:shadow-card",
                     a.severity === "urgente" ? "border-l-destructive bg-destructive/5" : "border-l-warning bg-warning/5"
                   )}
                 >
-                  <p className="text-sm font-medium">{a.title}</p>
-                  <p className="text-xs text-muted-foreground">{a.description}</p>
+                  <p className="text-sm font-semibold">{a.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>
                 </div>
               ))}
             </div>
@@ -124,35 +124,32 @@ export default function Dashboard() {
 
         {/* Upcoming Hearings */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              Próximas Audiências
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/agenda" className="text-xs">Agenda <ChevronRight className="ml-1 h-3 w-3" /></Link>
-            </Button>
-          </div>
+          <SectionHeader
+            icon={<CalendarDays className="h-4 w-4 text-primary" />}
+            title="Próximas Audiências"
+            linkTo="/agenda"
+            linkLabel="Agenda"
+          />
           <div className="space-y-2">
             {upcomingHearings.map((h) => (
               <Link
                 key={h.id}
                 to={`/processos/${h.case_id}`}
-                className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-all hover:shadow-md"
+                className="flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5 duration-200"
               >
-                <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10">
-                  <span className="text-xs font-bold text-primary">
+                <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl" style={{ background: "var(--gradient-cool)" }}>
+                  <span className="text-xs font-bold text-primary-foreground">
                     {new Date(h.date).getDate()}
                   </span>
-                  <span className="text-[9px] text-primary/70">
+                  <span className="text-[8px] font-semibold text-primary-foreground/80 uppercase">
                     {new Date(h.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{h.type}</p>
-                  <p className="truncate text-xs text-muted-foreground">{h.employee} · {h.time}</p>
+                  <p className="text-sm font-semibold">{h.type}</p>
+                  <p className="truncate text-xs text-muted-foreground font-medium">{h.employee} · {h.time}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
               </Link>
             ))}
           </div>
@@ -160,27 +157,24 @@ export default function Dashboard() {
 
         {/* Urgent Tasks */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-warning" />
-              Tarefas Prioritárias
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/tarefas" className="text-xs">Ver todas <ChevronRight className="ml-1 h-3 w-3" /></Link>
-            </Button>
-          </div>
+          <SectionHeader
+            icon={<ClipboardList className="h-4 w-4 text-warning" />}
+            title="Tarefas Prioritárias"
+            linkTo="/tarefas"
+            linkLabel="Ver todas"
+          />
           <div className="space-y-2">
             {urgentTasks.map((t) => (
-              <div key={t.id} className="flex items-start gap-3 rounded-xl border bg-card p-3">
-                <div className={cn("mt-0.5 h-2 w-2 shrink-0 rounded-full", priorityColors[t.priority].replace("text-", "bg-"))} />
+              <div key={t.id} className="flex items-start gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all hover:shadow-card duration-200">
+                <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card", priorityColors[t.priority].replace("text-", "bg-"), priorityColors[t.priority].replace("text-", "ring-") + "/20")} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-snug">{t.title}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline" className="text-[10px]">{taskStatusLabels[t.status]}</Badge>
-                    <span className={cn("text-[10px] font-medium", priorityColors[t.priority])}>
+                  <p className="text-sm font-semibold leading-snug">{t.title}</p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className="text-[10px] font-semibold">{taskStatusLabels[t.status]}</Badge>
+                    <span className={cn("text-[10px] font-semibold", priorityColors[t.priority])}>
                       {priorityLabels[t.priority]}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground font-medium">
                       · {new Date(t.due_at).toLocaleDateString("pt-BR")}
                     </span>
                   </div>
@@ -191,31 +185,28 @@ export default function Dashboard() {
         </div>
 
         {/* Process Status Overview */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-[400ms]">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-success" />
-              Processos por Status
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/processos" className="text-xs">Ver processos <ChevronRight className="ml-1 h-3 w-3" /></Link>
-            </Button>
-          </div>
-          <div className="rounded-xl border bg-card p-4">
-            <div className="space-y-3">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+          <SectionHeader
+            icon={<TrendingUp className="h-4 w-4 text-success" />}
+            title="Processos por Status"
+            linkTo="/processos"
+            linkLabel="Ver processos"
+          />
+          <div className="rounded-xl border bg-card p-5 shadow-soft">
+            <div className="space-y-4">
               {(Object.entries(statusLabels) as [CaseStatus, string][]).map(([key, label]) => {
                 const count = cases.filter((c) => c.status === key).length;
                 if (count === 0) return null;
                 const percent = Math.round((count / totalCases) * 100);
                 return (
                   <div key={key}>
-                    <div className="mb-1 flex items-center justify-between text-xs">
-                      <span className="font-medium">{label}</span>
-                      <span className="text-muted-foreground">{count} ({percent}%)</span>
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                      <span className="font-semibold">{label}</span>
+                      <span className="text-muted-foreground font-medium">{count} ({percent}%)</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted/60">
                       <div
-                        className={cn("h-full rounded-full transition-all", statusColors[key])}
+                        className={cn("h-full rounded-full transition-all duration-700 ease-out", statusColors[key])}
                         style={{ width: `${percent}%` }}
                       />
                     </div>
@@ -230,25 +221,39 @@ export default function Dashboard() {
   );
 }
 
+function SectionHeader({ icon, title, linkTo, linkLabel }: { icon: React.ReactNode; title: string; linkTo: string; linkLabel: string }) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-sm font-bold flex items-center gap-2">{icon}{title}</h2>
+      <Button variant="ghost" size="sm" asChild className="text-xs font-semibold text-muted-foreground hover:text-primary">
+        <Link to={linkTo}>{linkLabel} <ChevronRight className="ml-1 h-3 w-3" /></Link>
+      </Button>
+    </div>
+  );
+}
+
 function MetricCard({
-  icon, label, value, total, color, bgColor,
+  icon, label, value, total, gradient, delay,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   total?: number;
-  color: string;
-  bgColor: string;
+  gradient: string;
+  delay: number;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-3 sm:p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className={cn("mb-2 flex h-9 w-9 items-center justify-center rounded-lg", bgColor, color)}>
+    <div
+      className="rounded-xl border bg-card p-4 sm:p-5 shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500"
+      style={{ animationDelay: `${delay * 80}ms` }}
+    >
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl text-primary-foreground shadow-sm" style={{ background: gradient }}>
         {icon}
       </div>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-3xl font-extrabold tracking-tight">{value}</p>
+      <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
         {label}
-        {total !== undefined && <span className="text-muted-foreground/60"> / {total}</span>}
+        {total !== undefined && <span className="text-muted-foreground/50"> / {total}</span>}
       </p>
     </div>
   );
