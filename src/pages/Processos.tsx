@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCases, mockCompanies, statusLabels, type CaseStatus } from "@/data/mock";
+import { statusLabels, type CaseStatus } from "@/data/mock";
+import { useTenantData } from "@/hooks/useTenantData";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<CaseStatus, string> = {
@@ -18,10 +19,11 @@ const statusColors: Record<CaseStatus, string> = {
 };
 
 export default function Processos() {
+  const { cases, companies } = useTenantData();
   const [search, setSearch] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
 
-  const filtered = mockCases.filter((c) => {
+  const filtered = cases.filter((c) => {
     const matchesSearch =
       c.case_number.includes(search) ||
       c.employee.toLowerCase().includes(search.toLowerCase()) ||
@@ -63,7 +65,7 @@ export default function Processos() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as empresas</SelectItem>
-            {mockCompanies.map((company) => (
+            {companies.map((company) => (
               <SelectItem key={company.id} value={company.id}>
                 {company.name}
               </SelectItem>

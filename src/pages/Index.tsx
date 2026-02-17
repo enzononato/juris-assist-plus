@@ -6,10 +6,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  mockCases, mockTasks, mockDeadlines, mockHearings, mockAlerts,
   statusLabels, priorityLabels, taskStatusLabels,
   type CaseStatus, type Priority,
 } from "@/data/mock";
+import { useTenantData } from "@/hooks/useTenantData";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<CaseStatus, string> = {
@@ -29,20 +30,23 @@ const priorityColors: Record<Priority, string> = {
 };
 
 export default function Dashboard() {
-  const totalCases = mockCases.length;
-  const activeCases = mockCases.filter((c) => c.status !== "encerrado").length;
-  const pendingTasks = mockTasks.filter((t) => t.status !== "concluida").length;
-  const urgentDeadlines = mockDeadlines.filter((d) => {
+  const { user } = useAuth();
+  const { cases, tasks, alerts, deadlines, hearings } = useTenantData();
+
+  const totalCases = cases.length;
+  const activeCases = cases.filter((c) => c.status !== "encerrado").length;
+  const pendingTasks = tasks.filter((t) => t.status !== "concluida").length;
+  const urgentDeadlines = deadlines.filter((d) => {
     if (d.status !== "pendente") return false;
     const days = Math.ceil((new Date(d.due_at).getTime() - Date.now()) / 86400000);
     return days <= 7;
   });
-  const untreatedAlerts = mockAlerts.filter((a) => !a.treated);
-  const upcomingHearings = mockHearings
+  const untreatedAlerts = alerts.filter((a) => !a.treated);
+  const upcomingHearings = hearings
     .filter((h) => h.status === "agendada")
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3);
-  const urgentTasks = mockTasks
+  const urgentTasks = tasks
     .filter((t) => t.status !== "concluida")
     .sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())
     .slice(0, 5);
@@ -50,7 +54,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard</h1>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Olá, {user?.name?.split(" ")[0]}</h1>
         <p className="text-sm text-muted-foreground">Visão geral do sistema jurídico trabalhista</p>
       </div>
 
@@ -68,7 +72,7 @@ export default function Dashboard() {
           icon={<ClipboardList className="h-5 w-5" />}
           label="Tarefas Pendentes"
           value={pendingTasks}
-          total={mockTasks.length}
+          total={tasks.length}
           color="text-warning"
           bgColor="bg-warning/10"
         />
@@ -200,7 +204,7 @@ export default function Dashboard() {
           <div className="rounded-xl border bg-card p-4">
             <div className="space-y-3">
               {(Object.entries(statusLabels) as [CaseStatus, string][]).map(([key, label]) => {
-                const count = mockCases.filter((c) => c.status === key).length;
+                const count = cases.filter((c) => c.status === key).length;
                 if (count === 0) return null;
                 const percent = Math.round((count / totalCases) * 100);
                 return (

@@ -10,10 +10,15 @@ import {
   UserCheck,
   LayoutDashboard,
   BarChart3,
+  LogOut,
+  Building2,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth, roleLabels } from "@/contexts/AuthContext";
 import JuriaChatButton from "@/components/ai/JuriaChatButton";
 
 const navItems = [
@@ -27,7 +32,6 @@ const navItems = [
   { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu" },
 ];
 
-// Mobile nav only shows 5 items max for layout, rest goes in Menu
 const mobileNavItems = navItems.filter((i) =>
   ["/dashboard", "/tarefas", "/processos", "/alertas", "/menu"].includes(i.path)
 );
@@ -35,8 +39,11 @@ const mobileNavItems = navItems.filter((i) =>
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path || (path !== "/dashboard" && location.pathname.startsWith(path));
+
+  const initials = user ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : "??";
 
   if (isMobile) {
     return (
@@ -46,7 +53,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Scale className="h-4 w-4 text-primary" />
             <h1 className="text-base font-bold tracking-tight text-foreground">SIAG</h1>
           </div>
-          <span className="text-[10px] font-medium text-muted-foreground">Trabalhista</span>
+          <div className="flex items-center gap-2">
+            {user && (
+              <Badge variant="outline" className="text-[9px] gap-1">
+                <Shield className="h-2.5 w-2.5" />
+                {roleLabels[user.role]}
+              </Badge>
+            )}
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={logout}>
+              <LogOut className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </header>
         <main className="flex-1 overflow-auto pb-[68px]">{children}</main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur-sm safe-area-pb">
@@ -59,9 +76,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   to={item.path}
                   className={cn(
                     "flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all",
-                    active
-                      ? "text-primary"
-                      : "text-muted-foreground active:text-foreground"
+                    active ? "text-primary" : "text-muted-foreground active:text-foreground"
                   )}
                 >
                   <div className={cn(
@@ -124,15 +139,24 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-              AJ
+              {initials}
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">Ana Jurídico</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{user?.name}</p>
               <p className="truncate text-[11px] text-sidebar-foreground/50">
-                Resp. Jurídico Interno
+                {user ? roleLabels[user.role] : ""}
               </p>
             </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-sidebar-foreground/50 hover:text-sidebar-foreground" onClick={logout}>
+              <LogOut className="h-3.5 w-3.5" />
+            </Button>
           </div>
+          {user && user.company_id !== "all" && (
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-sidebar-foreground/50">
+              <Building2 className="h-3 w-3" />
+              {user.company_name}
+            </div>
+          )}
         </div>
       </aside>
 
