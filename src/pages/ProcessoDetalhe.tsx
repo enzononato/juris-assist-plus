@@ -137,6 +137,11 @@ export default function ProcessoDetalhe() {
             </div>
             <p className="text-sm text-muted-foreground">{caso.case_number}</p>
             <p className="text-sm text-muted-foreground">{caso.company} – {caso.branch}</p>
+            {caso.amount != null && (
+              <p className="text-sm font-semibold text-primary mt-0.5">
+                Valor da causa: {caso.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {editStatus ? (

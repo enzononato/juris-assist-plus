@@ -191,6 +191,9 @@ export default function ProcessoResumoTab({ caso }: Props) {
           </div>
 
           <Info label="Tema" value={caso.theme} />
+          {caso.amount != null && (
+            <Info label="Valor da Causa" value={caso.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+          )}
           <Info label="Ajuizamento" value={new Date(caso.filed_at).toLocaleDateString("pt-BR")} />
         </div>
         <div className="space-y-4">
