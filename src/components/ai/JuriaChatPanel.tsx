@@ -28,7 +28,7 @@ function getMockResponse(input: string): string {
   }
 
   if (lower.includes("carlos") || lower.includes("0001234")) {
-    return "📋 **Resumo: Carlos Alberto Silva**\n\n- **Nº:** 0001234-56.2024.5.01.0001\n- **Tema:** Horas Extras\n- **Status:** Em Andamento\n- **Empresa:** Revalle Juazeiro\n- **Tribunal:** 1ª Vara do Trabalho de Juazeiro\n- **Responsável:** Ana Jurídico\n- **Advogado:** Dr. Roberto Advogado\n\n**Próximos eventos:**\n- Audiência de Instrução em 10/03/2026\n- Prazo para manifestação em 28/02/2026\n\n**Tarefas pendentes:** 1 (Reunir espelhos de ponto)\n**Provas:** 3 evidências anexadas, checklist de provas 33% concluído";
+    return "📋 **Resumo: Carlos Alberto Silva**\n\n- **Nº:** 0001234-56.2024.5.01.0001\n- **Tema:** Horas Extras\n- **Status:** Em Andamento\n- **Empresa:** Revalle Juazeiro\n- **Tribunal:** 1ª Vara do Trabalho de Juazeiro\n- **Responsável:** Thiago\n- **Advogada:** Sullydaiane\n\n**Próximos eventos:**\n- Audiência de Instrução em 10/03/2026\n- Prazo para manifestação em 28/02/2026\n\n**Tarefas pendentes:** 1 (Reunir espelhos de ponto)\n**Provas:** 3 evidências anexadas, checklist de provas 33% concluído";
   }
 
   if (lower.includes("tarefa") || lower.includes("pendente")) {

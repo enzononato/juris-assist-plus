@@ -25,7 +25,7 @@ type ViewType = "mes" | "semana" | "dia";
 type EventFilterType = "todos" | "audiencia" | "prazo" | "tarefa";
 type AssignmentFilter = "todos" | "minhas";
 
-const CURRENT_USER = "Ana Jurídico";
+const CURRENT_USER = "Thiago";
 
 interface CalendarEvent {
   type: "audiencia" | "prazo" | "tarefa";

@@ -24,13 +24,13 @@ export interface MockUser {
 }
 
 const mockUsers: MockUser[] = [
-  { id: "u1", name: "Ana Jurídico", email: "ana@revalle.com.br", role: "admin", company_id: "all", company_name: "Todas" },
-  { id: "u2", name: "João DP", email: "joao.dp@revalle.com.br", role: "dp", company_id: "all", company_name: "Todas" },
-  { id: "u3", name: "Maria RH", email: "maria.rh@revalle.com.br", role: "rh", company_id: "c1", company_name: "Revalle Juazeiro" },
-  { id: "u4", name: "Dr. Roberto Advogado", email: "roberto@advocacia.com.br", role: "advogado_externo", company_id: "c1", company_name: "Revalle Juazeiro" },
-  { id: "u5", name: "Dra. Patrícia Externa", email: "patricia@advocacia.com.br", role: "advogado_externo", company_id: "c2", company_name: "Revalle Bonfim" },
-  { id: "u6", name: "Carlos Vendas", email: "carlos@revalle.com.br", role: "vendas", company_id: "c3", company_name: "Revalle Petrolina" },
-  { id: "u7", name: "Dr. Marcos Interno", email: "marcos@revalle.com.br", role: "responsavel_juridico_interno", company_id: "all", company_name: "Todas" },
+  { id: "u1", name: "Thiago", email: "thiago@revalle.com.br", role: "admin", company_id: "all", company_name: "Todas" },
+  { id: "u2", name: "Sandra", email: "sandra@revalle.com.br", role: "dp", company_id: "all", company_name: "Todas" },
+  { id: "u3", name: "Samilly", email: "samilly@revalle.com.br", role: "rh", company_id: "c1", company_name: "Revalle Juazeiro" },
+  { id: "u4", name: "Sullydaiane", email: "sullydaiane@advocacia.com.br", role: "advogado_externo", company_id: "c1", company_name: "Revalle Juazeiro" },
+  { id: "u5", name: "Sullydaiane", email: "sullydaiane@advocacia.com.br", role: "advogado_externo", company_id: "c2", company_name: "Revalle Bonfim" },
+  { id: "u6", name: "David", email: "david@revalle.com.br", role: "vendas", company_id: "c3", company_name: "Revalle Petrolina" },
+  { id: "u7", name: "Cintia", email: "cintia@revalle.com.br", role: "responsavel_juridico_interno", company_id: "all", company_name: "Todas" },
 ];
 
 export { mockUsers as availableMockUsers };

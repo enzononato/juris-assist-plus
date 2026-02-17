@@ -157,7 +157,7 @@ const goLiveItems: GoLiveItem[] = [
   { id: "g12", category: "Treinamento", title: "Módulos 1-6 concluídos", status: "concluido", responsible: "Todos" },
   { id: "g13", category: "Treinamento", title: "Documentação entregue", status: "concluido", responsible: "Equipe TI" },
   { id: "g14", category: "Validação", title: "Teste end-to-end com dados reais", status: "pendente", responsible: "Jurídico + TI" },
-  { id: "g15", category: "Validação", title: "Aprovação do gestor jurídico", status: "pendente", responsible: "Ana Jurídico" },
+  { id: "g15", category: "Validação", title: "Aprovação do gestor jurídico", status: "pendente", responsible: "Thiago" },
   { id: "g16", category: "Validação", title: "Publicação em produção", status: "pendente", responsible: "Equipe TI" },
 ];
 

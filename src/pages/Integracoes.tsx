@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 
 // ===== MOCK DATA =====
 const mockWhatsAppLogs = [
-  { id: "w1", to: "Ana Jurídico", phone: "(74) 99912-3456", template: "Alerta de Prazo", status: "entregue" as const, sent_at: "2026-02-16T10:00:00", case_number: "0005678-90.2024.5.02.0002" },
-  { id: "w2", to: "João DP", phone: "(74) 99934-5678", template: "Alerta de SLA", status: "entregue" as const, sent_at: "2026-02-16T08:30:00", case_number: "0009876-12.2024.5.03.0003" },
-  { id: "w3", to: "Dra. Patrícia Externa", phone: "(87) 99765-4321", template: "Alerta de Audiência", status: "erro" as const, sent_at: "2026-02-15T16:00:00", case_number: "0005678-90.2024.5.02.0002" },
-  { id: "w4", to: "Dr. Marcos Interno", phone: "(74) 99888-7654", template: "Alerta de Prazo", status: "entregue" as const, sent_at: "2026-02-15T09:00:00", case_number: "0003456-78.2025.5.02.0005" },
+  { id: "w1", to: "Thiago", phone: "(74) 99912-3456", template: "Alerta de Prazo", status: "entregue" as const, sent_at: "2026-02-16T10:00:00", case_number: "0005678-90.2024.5.02.0002" },
+  { id: "w2", to: "Sandra", phone: "(74) 99934-5678", template: "Alerta de SLA", status: "entregue" as const, sent_at: "2026-02-16T08:30:00", case_number: "0009876-12.2024.5.03.0003" },
+  { id: "w3", to: "Sullydaiane", phone: "(87) 99765-4321", template: "Alerta de Audiência", status: "erro" as const, sent_at: "2026-02-15T16:00:00", case_number: "0005678-90.2024.5.02.0002" },
+  { id: "w4", to: "Cintia", phone: "(74) 99888-7654", template: "Alerta de Prazo", status: "entregue" as const, sent_at: "2026-02-15T09:00:00", case_number: "0003456-78.2025.5.02.0005" },
 ];
 
 const mockEmailInbox = [
@@ -308,11 +308,11 @@ function IATab() {
         <h3 className="text-sm font-semibold">Log de Classificações IA</h3>
         <div className="space-y-2">
           {[
-            { file: "espelho_ponto_jan2024.pdf", suggested: "Ponto Eletrônico", confidence: 95, accepted: true, user: "João DP" },
-            { file: "escala_trabalho_2023.xlsx", suggested: "Escalas", confidence: 88, accepted: true, user: "Maria RH" },
-            { file: "registro_cftv_corredor.mp4", suggested: "CFTV / Câmera", confidence: 92, accepted: true, user: "João DP" },
-            { file: "conversas_teams_supervisor.pdf", suggested: "Conversas Oficiais", confidence: 78, accepted: false, user: "Ana Jurídico" },
-            { file: "atestado_medico_reclamante.pdf", suggested: "Atestados / Justificativas", confidence: 85, accepted: true, user: "Ana Jurídico" },
+            { file: "espelho_ponto_jan2024.pdf", suggested: "Ponto Eletrônico", confidence: 95, accepted: true, user: "Sandra" },
+            { file: "escala_trabalho_2023.xlsx", suggested: "Escalas", confidence: 88, accepted: true, user: "Samilly" },
+            { file: "registro_cftv_corredor.mp4", suggested: "CFTV / Câmera", confidence: 92, accepted: true, user: "Sandra" },
+            { file: "conversas_teams_supervisor.pdf", suggested: "Conversas Oficiais", confidence: 78, accepted: false, user: "Thiago" },
+            { file: "atestado_medico_reclamante.pdf", suggested: "Atestados / Justificativas", confidence: 85, accepted: true, user: "Thiago" },
           ].map((log, i) => (
             <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
               <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
