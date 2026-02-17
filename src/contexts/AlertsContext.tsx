@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { mockAlerts, type Alert, type AlertSeverity } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export interface EscalationLog {
   id: string;
@@ -39,17 +40,22 @@ interface AlertsContextType {
   untreatedCount: number;
   toggleTreated: (id: string) => void;
   snooze: (id: string, duration: string) => void;
+  notificationPermission: string;
+  isNotificationsSupported: boolean;
+  requestNotificationPermission: () => Promise<void>;
 }
 
 const AlertsContext = createContext<AlertsContextType | undefined>(undefined);
 
 export function AlertsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { permission: notificationPermission, isSupported: isNotificationsSupported, requestPermission: requestNotificationPermission, sendNotification } = useNotifications();
   const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
   const [escalations, setEscalations] = useState<EscalationLog[]>([]);
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [whatsappLogs, setWhatsappLogs] = useState<WhatsAppLog[]>([]);
   const [simulated, setSimulated] = useState(false);
+  const prevAlertCountRef = useRef(alerts.length);
 
   const untreatedCount = alerts.filter((a) => !a.treated).length;
 
@@ -221,8 +227,23 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     toast({ title: "Alerta adiado", description: `Adiado por ${duration}. (Demo)` });
   }, []);
 
+  // Send push notification when new alerts arrive
+  useEffect(() => {
+    if (alerts.length > prevAlertCountRef.current) {
+      const newAlerts = alerts.slice(0, alerts.length - prevAlertCountRef.current);
+      newAlerts.forEach((a) => {
+        const severityEmoji = a.severity === "urgente" ? "🔴" : a.severity === "atencao" ? "⚠️" : "ℹ️";
+        sendNotification(`${severityEmoji} ${a.title}`, {
+          body: a.description,
+          tag: `alert-${a.id}`,
+        });
+      });
+    }
+    prevAlertCountRef.current = alerts.length;
+  }, [alerts, sendNotification]);
+
   return (
-    <AlertsContext.Provider value={{ alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze }}>
+    <AlertsContext.Provider value={{ alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze, notificationPermission, isNotificationsSupported, requestNotificationPermission }}>
       {children}
     </AlertsContext.Provider>
   );

@@ -4,6 +4,7 @@ import {
   Bell, CalendarDays, Clock, FileText, CheckCircle2, BellOff,
   ExternalLink, UserPlus, AlarmClock, MoreHorizontal, ArrowUpRight,
   Mail, AlertTriangle, TrendingUp, MessageCircle, Phone,
+  BellRing, BellPlus, Smartphone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ type AlertTab = "todos" | "importantes" | "prazo" | "audiencia" | "tarefa" | "pr
 export default function Alertas() {
   const [mainTab, setMainTab] = useState<MainTab>("alertas");
   const [alertTab, setAlertTab] = useState<AlertTab>("todos");
-  const { alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze } = useAlerts();
+  const { alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze, notificationPermission, isNotificationsSupported, requestNotificationPermission } = useAlerts();
 
   const filtered = (() => {
     switch (alertTab) {
@@ -90,6 +91,37 @@ export default function Alertas() {
           )}
         </p>
       </div>
+
+      {/* Push notification permission banner */}
+      {isNotificationsSupported && notificationPermission !== "granted" && (
+        <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <BellRing className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Ativar notificações push</p>
+            <p className="text-xs text-muted-foreground">
+              Receba alertas de prazos e audiências diretamente no seu dispositivo, mesmo com o navegador minimizado.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="gap-1.5 shrink-0"
+            onClick={requestNotificationPermission}
+          >
+            <BellPlus className="h-3.5 w-3.5" />
+            Ativar
+          </Button>
+        </div>
+      )}
+      {isNotificationsSupported && notificationPermission === "granted" && (
+        <div className="mb-4 rounded-xl border border-success/20 bg-success/5 p-3 flex items-center gap-3">
+          <Smartphone className="h-4 w-4 text-success shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            <span className="font-semibold text-success">Notificações push ativas</span> — alertas de prazos e audiências serão exibidos no seu dispositivo.
+          </p>
+        </div>
+      )}
 
       {/* Main Tabs: Alertas / Escalonamento / E-mails */}
       <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)}>
