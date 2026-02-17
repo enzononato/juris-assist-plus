@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Plus, Shield, Edit, Search, Trash2, Save, X, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, Plus, Shield, Edit, Search, Trash2, Save, X, Building2, ChevronDown, ChevronUp, UserCheck, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,15 @@ export default function UsuariosPermissoes() {
     toast({ title: "Usuário atualizado", description: `${editForm.name} foi atualizado com sucesso.` });
     setEditingUser(null);
     setEditForm({});
+  };
+
+  const toggleUserActive = (userId: string) => {
+    setUsers(prev => prev.map(u => {
+      if (u.id !== userId) return u;
+      const newActive = !u.active;
+      toast({ title: newActive ? "Usuário ativado" : "Usuário desativado", description: `${u.name} foi ${newActive ? "ativado" : "desativado"}.` });
+      return { ...u, active: newActive };
+    }));
   };
 
   const deleteUser = (userId: string) => {
@@ -345,9 +354,17 @@ export default function UsuariosPermissoes() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 pt-2 border-t">
+                      <div className="flex flex-wrap gap-2 pt-2 border-t">
                         <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); startEditing(user); }}>
                           <Edit className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={cn("gap-1.5 text-xs", user.active ? "text-warning hover:bg-warning/10 border-warning/30" : "text-success hover:bg-success/10 border-success/30")}
+                          onClick={(e) => { e.stopPropagation(); toggleUserActive(user.id); }}
+                        >
+                          {user.active ? <><UserX className="h-3 w-3" /> Desativar</> : <><UserCheck className="h-3 w-3" /> Ativar</>}
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
