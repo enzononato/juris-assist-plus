@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X } from "lucide-react";
+import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,6 +82,29 @@ export default function Tarefas() {
     toast({ title: "Tarefa excluída (Demo)" });
   };
 
+  const exportCSV = () => {
+    const BOM = "\uFEFF";
+    const headers = ["Título", "Status", "Prioridade", "Processo", "Reclamante", "Responsáveis", "Prazo"];
+    const rows = filtered.map((t) => [
+      `"${t.title.replace(/"/g, '""')}"`,
+      taskStatusLabels[t.status],
+      priorityLabels[t.priority],
+      t.case_number ?? "",
+      t.employee ?? "",
+      `"${t.assignees.join(", ")}"`,
+      new Date(t.due_at).toLocaleString("pt-BR"),
+    ]);
+    const csv = BOM + [headers, ...rows].map((r) => r.join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tarefas_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `CSV exportado com ${filtered.length} tarefa(s)` });
+  };
+
   const counts = {
     todas: tasks.length,
     aberta: tasks.filter(t => t.status === "aberta").length,
@@ -108,9 +131,20 @@ export default function Tarefas() {
             {activeFilters > 0 && <span className="text-primary"> · {activeFilters} filtro(s) ativo(s)</span>}
           </p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
-          <Link to="/tarefas/nova"><Plus className="h-4 w-4" /> Nova Tarefa</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 rounded-xl text-xs"
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+          >
+            <Download className="h-3.5 w-3.5" /> Exportar CSV
+          </Button>
+          <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
+            <Link to="/tarefas/nova"><Plus className="h-4 w-4" /> Nova Tarefa</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Search + Filters */}
