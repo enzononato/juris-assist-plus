@@ -18,6 +18,7 @@ import {
   mockHearings, mockDeadlines, mockTasks, mockCases, mockCompanies,
 } from "@/data/mock";
 import { useAuth } from "@/contexts/AuthContext";
+import type { AppRole } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -34,6 +35,26 @@ type ViewType = "dia" | "semana" | "mes" | "ano";
 type EventFilterType = "todos" | "audiencia" | "prazo" | "tarefa";
 type AssignmentFilter = "todos" | "minhas";
 const CURRENT_USER = "Thiago";
+
+/** Retorna true se o caso é visível para o usuário com o papel/nome dados */
+function canUserSeeCase(caso: { responsible: string; lawyer: string; responsible_sector?: string } | undefined, userName: string, userRole: AppRole | undefined): boolean {
+  if (!caso) return false;
+  // Admin e Diretor Jurídico veem tudo
+  if (!userRole || userRole === "admin" || userRole === "responsavel_juridico_interno") return true;
+  // Advogado externo: apenas processos onde é o advogado
+  if (userRole === "advogado_externo") return caso.lawyer === userName;
+  // DP: processos onde é o responsável gestor (campo responsible = nome do usuário DP)
+  if (userRole === "dp") return caso.responsible === userName || caso.responsible_sector === "dp";
+  // RH: processos onde é o responsável gestor ou setor responsável é RH
+  if (userRole === "rh") return caso.responsible === userName || caso.responsible_sector === "rh";
+  // Vendas: apenas processos do setor vendas
+  if (userRole === "vendas") return caso.responsible_sector === "vendas";
+  // Logística: apenas processos do setor logistica
+  if (userRole === "logistica") return caso.responsible_sector === "logistica";
+  // Frota: apenas processos do setor frota
+  if (userRole === "frota") return caso.responsible_sector === "frota";
+  return false;
+}
 
 interface CalendarEvent {
   type: "audiencia" | "prazo" | "tarefa";
@@ -54,7 +75,14 @@ function formatDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function getEventsForDate(date: Date, typeFilter: EventFilterType, assignmentFilter: AssignmentFilter, companyFilter: string, currentUser?: string): CalendarEvent[] {
+function getEventsForDate(
+  date: Date,
+  typeFilter: EventFilterType,
+  assignmentFilter: AssignmentFilter,
+  companyFilter: string,
+  currentUser?: string,
+  userRole?: AppRole
+): CalendarEvent[] {
   const dateStr = formatDateStr(date);
   const items: CalendarEvent[] = [];
   const user = currentUser ?? CURRENT_USER;
@@ -63,6 +91,7 @@ function getEventsForDate(date: Date, typeFilter: EventFilterType, assignmentFil
     mockHearings.forEach((h) => {
       if (h.date !== dateStr) return;
       const caso = mockCases.find((c) => c.id === h.case_id);
+      if (!canUserSeeCase(caso, user, userRole)) return;
       if (companyFilter !== "todas" && caso?.company_id !== companyFilter) return;
       if (assignmentFilter === "minhas" && caso?.responsible !== user) return;
       items.push({
@@ -78,6 +107,7 @@ function getEventsForDate(date: Date, typeFilter: EventFilterType, assignmentFil
     mockDeadlines.forEach((d) => {
       if (d.due_at !== dateStr) return;
       const caso = mockCases.find((c) => c.id === d.case_id);
+      if (!canUserSeeCase(caso, user, userRole)) return;
       if (companyFilter !== "todas" && caso?.company_id !== companyFilter) return;
       if (assignmentFilter === "minhas" && caso?.responsible !== user) return;
       items.push({
@@ -91,6 +121,13 @@ function getEventsForDate(date: Date, typeFilter: EventFilterType, assignmentFil
     mockTasks.filter((t) => t.show_in_calendar).forEach((t) => {
       if (!t.due_at.startsWith(dateStr)) return;
       const caso = t.case_id ? mockCases.find((c) => c.id === t.case_id) : undefined;
+      // Para tarefas: mostrar se a tarefa está atribuída ao usuário OU se o caso é visível
+      const caseVisible = caso ? canUserSeeCase(caso, user, userRole) : true;
+      const isAssignee = t.assignees.includes(user);
+      // Usuários de setor (vendas/logistica/frota) só veem tarefas onde são assignees
+      const sectorOnly = userRole === "vendas" || userRole === "logistica" || userRole === "frota";
+      if (sectorOnly && !isAssignee) return;
+      if (!sectorOnly && !caseVisible && !isAssignee) return;
       if (companyFilter !== "todas" && caso && caso.company_id !== companyFilter) return;
       if (assignmentFilter === "minhas" && !t.assignees.includes(user)) return;
       const time = t.due_at.split("T")[1]?.slice(0,5);
@@ -362,9 +399,9 @@ function SidePanel({ date, events, onEventClick }: { date: Date; events: Calenda
 }
 
 // ── Month View ──
-function MonthView({ selectedDate, onDayClick, typeFilter, assignmentFilter, companyFilter, currentUser }: {
+function MonthView({ selectedDate, onDayClick, typeFilter, assignmentFilter, companyFilter, currentUser, userRole }: {
   selectedDate: Date; onDayClick: (d: Date) => void;
-  typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; currentUser?: string;
+  typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; currentUser?: string; userRole?: AppRole;
 }) {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -382,7 +419,7 @@ function MonthView({ selectedDate, onDayClick, typeFilter, assignmentFilter, com
       {Array.from({ length: daysInMonth }).map((_, i) => {
         const day = i + 1;
         const date = new Date(year, month, day);
-        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser);
+        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser, userRole);
         const isToday = isSameDay(date, TODAY);
         const isSelected = isSameDay(date, selectedDate);
         return (
@@ -463,14 +500,14 @@ function TimeGrid({ columns, renderAllDay, renderEvent }: {
   );
 }
 
-function WeekView({ selectedDate, typeFilter, assignmentFilter, companyFilter, onEventClick, currentUser }: {
-  selectedDate: Date; typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; onEventClick: (e: CalendarEvent) => void; currentUser?: string;
+function WeekView({ selectedDate, typeFilter, assignmentFilter, companyFilter, onEventClick, currentUser, userRole }: {
+  selectedDate: Date; typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; onEventClick: (e: CalendarEvent) => void; currentUser?: string; userRole?: AppRole;
 }) {
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   return (
     <TimeGrid columns={weekDays}
       renderAllDay={(date) => {
-        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser).filter((e) => e.type==="prazo");
+        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser, userRole).filter((e) => e.type==="prazo");
         return events.map((e, i) => (
           <div key={i} onClick={() => onEventClick(e)} className={`mb-0.5 truncate rounded px-1 py-0.5 text-[9px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${allDayColor(e.type)}`}>
             {e.title.slice(0,15)}
@@ -478,7 +515,7 @@ function WeekView({ selectedDate, typeFilter, assignmentFilter, companyFilter, o
         ));
       }}
       renderEvent={(date, hour) => {
-        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser).filter((e) => e.hour===hour);
+        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser, userRole).filter((e) => e.hour===hour);
         return events.map((e, i) => (
           <div key={i} onClick={() => onEventClick(e)} className={`mb-0.5 rounded px-1.5 py-1 text-[9px] leading-tight cursor-pointer hover:opacity-80 transition-opacity ${eventColor(e.type)}`}>
             <div className="font-bold">{e.time}</div>
@@ -491,14 +528,14 @@ function WeekView({ selectedDate, typeFilter, assignmentFilter, companyFilter, o
   );
 }
 
-function DayView({ selectedDate, typeFilter, assignmentFilter, companyFilter, onEventClick, currentUser }: {
+function DayView({ selectedDate, typeFilter, assignmentFilter, companyFilter, onEventClick, currentUser, userRole }: {
   selectedDate: Date; typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string;
-  onEventClick: (e: CalendarEvent) => void; currentUser?: string;
+  onEventClick: (e: CalendarEvent) => void; currentUser?: string; userRole?: AppRole;
 }) {
   return (
     <TimeGrid columns={[selectedDate]}
       renderAllDay={(date) => {
-        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser).filter((e) => e.type==="prazo");
+        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser, userRole).filter((e) => e.type==="prazo");
         return events.map((e, i) => (
           <div key={i} onClick={() => onEventClick(e)} className={`mb-0.5 rounded px-2 py-1 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${allDayColor(e.type)}`}>
             {e.title} {e.employee && <span className="opacity-75">· {e.employee}</span>}
@@ -506,7 +543,7 @@ function DayView({ selectedDate, typeFilter, assignmentFilter, companyFilter, on
         ));
       }}
       renderEvent={(date, hour) => {
-        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser).filter((e) => e.hour===hour);
+        const events = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser, userRole).filter((e) => e.hour===hour);
         return events.map((e, i) => (
           <div key={i} onClick={() => onEventClick(e)} className={`mb-1 rounded px-2 py-1.5 text-xs leading-tight cursor-pointer hover:opacity-80 transition-opacity ${eventColor(e.type)}`}>
             <div className="font-bold">{e.time} – {eventTypeLabel(e.type)}</div>
@@ -520,9 +557,9 @@ function DayView({ selectedDate, typeFilter, assignmentFilter, companyFilter, on
 }
 
 // ── Year View ──
-function YearView({ selectedDate, onMonthClick, typeFilter, assignmentFilter, companyFilter, currentUser }: {
+function YearView({ selectedDate, onMonthClick, typeFilter, assignmentFilter, companyFilter, currentUser, userRole }: {
   selectedDate: Date; onMonthClick: (d: Date) => void;
-  typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; currentUser?: string;
+  typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; currentUser?: string; userRole?: AppRole;
 }) {
   const year = selectedDate.getFullYear();
 
@@ -537,7 +574,7 @@ function YearView({ selectedDate, onMonthClick, typeFilter, assignmentFilter, co
         let audiencias = 0, prazos = 0, tarefas = 0;
         for (let d = 1; d <= daysInMonth; d++) {
           const date = new Date(year, monthIdx, d);
-          const evts = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser);
+          const evts = getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser, userRole);
           if (evts.length > 0) {
             eventMap[d] = new Set(evts.map((e) => e.type));
             evts.forEach((e) => {
@@ -647,7 +684,8 @@ function YearView({ selectedDate, onMonthClick, typeFilter, assignmentFilter, co
 export default function Agenda() {
   const { user } = useAuth();
   const currentUserName = user?.name ?? CURRENT_USER;
-  const isAdmin = user?.role === "admin" || user?.role === "responsavel_juridico_interno";
+  const userRole = user?.role;
+  const isAdmin = userRole === "admin" || userRole === "responsavel_juridico_interno";
 
   const [selectedDate, setSelectedDate] = useState(new Date(2026,1,16));
   const [view, setView] = useState<ViewType>("mes");
@@ -705,7 +743,7 @@ export default function Agenda() {
 
   const handleExportICS = () => {
     const dateStr = formatDateStr(selectedDate);
-    const events = getEventsForDate(selectedDate, typeFilter, assignmentFilter, companyFilter, currentUserName);
+    const events = getEventsForDate(selectedDate, typeFilter, assignmentFilter, companyFilter, currentUserName, userRole);
     downloadICS(events, dateStr);
   };
 
@@ -725,7 +763,7 @@ export default function Agenda() {
 
     const allEvents: (CalendarEvent & { dateLabel: string })[] = [];
     dates.forEach((d) => {
-      const evs = getEventsForDate(d, typeFilter, assignmentFilter, companyFilter, currentUserName);
+      const evs = getEventsForDate(d, typeFilter, assignmentFilter, companyFilter, currentUserName, userRole);
       evs.forEach((e) => allEvents.push({ ...e, dateLabel: d.toLocaleDateString("pt-BR") }));
     });
 
@@ -792,7 +830,7 @@ export default function Agenda() {
     }
     let audiencias = 0, prazos = 0, tarefas = 0;
     dates.forEach((d) => {
-      const events = getEventsForDate(d, "todos", assignmentFilter, companyFilter, currentUserName);
+      const events = getEventsForDate(d, "todos", assignmentFilter, companyFilter, currentUserName, userRole);
       events.forEach((e) => {
         if (e.type === "audiencia") audiencias++;
         else if (e.type === "prazo") prazos++;
@@ -932,10 +970,10 @@ export default function Agenda() {
         {/* Calendar + Side Panel */}
         <div className="flex gap-4">
           <div className="flex-1 min-w-0">
-            {view === "ano" && <YearView selectedDate={selectedDate} onMonthClick={handleMonthClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} />}
-            {view === "mes" && <MonthView selectedDate={selectedDate} onDayClick={handleDayClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} />}
-            {view === "semana" && <WeekView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} />}
-            {view === "dia" && <DayView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} />}
+            {view === "ano" && <YearView selectedDate={selectedDate} onMonthClick={handleMonthClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} userRole={userRole} />}
+            {view === "mes" && <MonthView selectedDate={selectedDate} onDayClick={handleDayClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} userRole={userRole} />}
+            {view === "semana" && <WeekView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} userRole={userRole} />}
+            {view === "dia" && <DayView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} userRole={userRole} />}
           </div>
 
         </div>

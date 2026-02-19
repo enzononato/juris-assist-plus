@@ -34,6 +34,8 @@ export interface Case {
   next_hearing?: string;
   next_deadline?: string;
   amount?: number;
+  /** Setor interno responsável por fornecer documentos/provas */
+  responsible_sector?: 'dp' | 'rh' | 'frota' | 'vendas' | 'logistica' | 'ti';
 }
 
 export interface Task {
@@ -273,6 +275,7 @@ export const mockCases: Case[] = [
     next_hearing: '2026-03-10T14:00:00',
     next_deadline: '2026-02-28',
     amount: 85000,
+    responsible_sector: 'dp',
   },
   {
     id: '2',
@@ -292,6 +295,7 @@ export const mockCases: Case[] = [
     next_hearing: '2026-02-25T10:00:00',
     next_deadline: '2026-02-20',
     amount: 120000,
+    responsible_sector: 'rh',
   },
   {
     id: '3',
@@ -310,6 +314,7 @@ export const mockCases: Case[] = [
     filed_at: '2025-01-10',
     next_deadline: '2026-03-05',
     amount: 250000,
+    responsible_sector: 'dp',
   },
   {
     id: '4',
@@ -327,6 +332,7 @@ export const mockCases: Case[] = [
     confidentiality: 'normal',
     filed_at: '2024-09-05',
     amount: 45000,
+    responsible_sector: 'vendas',
   },
   {
     id: '5',
@@ -345,6 +351,7 @@ export const mockCases: Case[] = [
     filed_at: '2024-11-12',
     next_deadline: '2026-03-15',
     amount: 175000,
+    responsible_sector: 'logistica',
   },
   {
     id: '6',
@@ -362,6 +369,7 @@ export const mockCases: Case[] = [
     confidentiality: 'normal',
     filed_at: '2023-04-10',
     amount: 32000,
+    responsible_sector: 'frota',
   },
   {
     id: '7',
@@ -379,6 +387,7 @@ export const mockCases: Case[] = [
     confidentiality: 'normal',
     filed_at: '2022-08-22',
     amount: 98000,
+    responsible_sector: 'dp',
   },
 ];
 
