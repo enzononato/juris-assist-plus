@@ -367,7 +367,8 @@ export default function Processos() {
   // Stats
 
   const stats = useMemo(() => {
-    const urgentDeadlines = cases.filter((c) => {
+    const activeCases = cases.filter((c) => c.status !== "encerrado");
+    const urgentDeadlines = activeCases.filter((c) => {
       if (!c.next_deadline) return false;
       const days = Math.ceil((new Date(c.next_deadline).getTime() - Date.now()) / 86400000);
       return days >= 0 && days <= 7;
@@ -375,8 +376,8 @@ export default function Processos() {
     const totalAmount = cases.reduce((sum, c) => sum + (c.amount ?? 0), 0);
     return {
       total: cases.length,
-      emAndamento: cases.filter((c) => c.status === "em_andamento").length,
-      audiencias: cases.filter((c) => c.status === "audiencia_marcada").length,
+      emAndamento: activeCases.filter((c) => c.status === "em_andamento").length,
+      audiencias: activeCases.filter((c) => c.status === "audiencia_marcada").length,
       urgentDeadlines,
       totalAmount,
     };
