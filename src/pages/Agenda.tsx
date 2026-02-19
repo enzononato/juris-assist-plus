@@ -811,15 +811,6 @@ export default function Agenda() {
               )}
             </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-lg" onClick={handleExportCSV}>
-                  <Download className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Exportar CSV</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p className="text-xs">Exportar eventos do período como CSV</p></TooltipContent>
-            </Tooltip>
             <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
               <TabsList className="h-9">
                 <TabsTrigger value="dia" className="text-xs px-3">Dia</TabsTrigger>
