@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, CalendarDays, Clock, User, Shield, Edit, Trash2, Plus, Save, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, User, Shield, Edit, Trash2, Plus, Save, X, Lock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +49,7 @@ export default function ProcessoDetalhe() {
 
   const [editStatus, setEditStatus] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<CaseStatus>(caso?.status ?? "novo");
+  const isEncerrado = currentStatus === "encerrado";
 
   if (!caso) return <div className="p-8 text-muted-foreground">Processo não encontrado.</div>;
 
@@ -173,6 +174,19 @@ export default function ProcessoDetalhe() {
         </div>
       </div>
 
+      {/* Banner de modo leitura para processos encerrados */}
+      {isEncerrado && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-muted-foreground/20 bg-muted/40 px-4 py-3">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-muted-foreground">Processo encerrado — modo leitura</p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
+              Este processo foi encerrado. Não é possível criar novas tarefas, prazos ou audiências. Apenas o histórico pode ser consultado.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Tabs defaultValue="resumo">
         <TabsList className="mb-4 w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
@@ -199,25 +213,35 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="prazos">
           <div className="space-y-3">
-            <div className="flex justify-end">
-              <NovoPrazoDialog caseId={id} />
-            </div>
+            {!isEncerrado && (
+              <div className="flex justify-end">
+                <NovoPrazoDialog caseId={id} />
+              </div>
+            )}
+            {isEncerrado && (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 px-4 py-2.5">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <p className="text-xs text-muted-foreground/70">Criação de prazos bloqueada para processos encerrados.</p>
+              </div>
+            )}
             {deadlines.length === 0 && <p className="text-sm text-muted-foreground">Nenhum prazo cadastrado.</p>}
             {deadlines.map((d) => (
-              <div key={d.id} className="flex items-center gap-3 rounded-lg border bg-card p-4">
+              <div key={d.id} className={cn("flex items-center gap-3 rounded-lg border bg-card p-4", isEncerrado && "opacity-75")}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{d.title}</p>
                   <p className="text-xs text-muted-foreground">Vencimento: {new Date(d.due_at).toLocaleDateString("pt-BR")}</p>
                   <Badge variant="outline" className="mt-2 text-[10px]">{d.status}</Badge>
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar prazo (Demo)" })}>
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Prazo excluído (Demo)" })}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+                {!isEncerrado && (
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar prazo (Demo)" })}>
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Prazo excluído (Demo)" })}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -225,12 +249,20 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="audiencias">
           <div className="space-y-3">
-            <div className="flex justify-end gap-2">
-              <NovaAudienciaDialog caseId={id} />
-            </div>
+            {!isEncerrado && (
+              <div className="flex justify-end gap-2">
+                <NovaAudienciaDialog caseId={id} />
+              </div>
+            )}
+            {isEncerrado && (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 px-4 py-2.5">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <p className="text-xs text-muted-foreground/70">Criação de audiências bloqueada para processos encerrados.</p>
+              </div>
+            )}
             {hearings.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma audiência cadastrada.</p>}
             {hearings.map((h) => (
-              <div key={h.id} className="rounded-lg border bg-card p-4">
+              <div key={h.id} className={cn("rounded-lg border bg-card p-4", isEncerrado && "opacity-75")}>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{h.type}</p>
@@ -240,12 +272,16 @@ export default function ProcessoDetalhe() {
                   </div>
                   <div className="flex items-center gap-1">
                     <PacoteAudienciaDialog hearing={h} evidenceItems={evidenceItems} checklists={checklists} />
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar audiência (Demo)" })}>
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Audiência excluída (Demo)" })}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    {!isEncerrado && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar audiência (Demo)" })}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Audiência excluída (Demo)" })}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -255,14 +291,21 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="tarefas">
           <div className="space-y-3">
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" asChild>
-                <Link to="/tarefas/nova"><Plus className="h-3.5 w-3.5" /> Nova Tarefa</Link>
-              </Button>
-            </div>
+            {!isEncerrado ? (
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" asChild>
+                  <Link to="/tarefas/nova"><Plus className="h-3.5 w-3.5" /> Nova Tarefa</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 px-4 py-2.5">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <p className="text-xs text-muted-foreground/70">Criação de tarefas bloqueada para processos encerrados.</p>
+              </div>
+            )}
             {tasks.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma tarefa vinculada.</p>}
             {tasks.map((t) => (
-              <div key={t.id} className="flex items-center gap-3 rounded-lg border bg-card p-4">
+              <div key={t.id} className={cn("flex items-center gap-3 rounded-lg border bg-card p-4", isEncerrado && "opacity-75")}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{t.title}</p>
                   <div className="mt-1 flex flex-wrap gap-2">
@@ -271,11 +314,13 @@ export default function ProcessoDetalhe() {
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{t.assignees.join(", ")}</p>
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar tarefa (Demo)" })}>
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                </div>
+                {!isEncerrado && (
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar tarefa (Demo)" })}>
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
