@@ -17,6 +17,7 @@ import { mockCases, mockTasks } from "@/data/mock";
 import { availableMockUsers } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useNotificationsContext } from "@/contexts/NotificationsContext";
 import { cn } from "@/lib/utils";
 
 const ALL_USERS = availableMockUsers.map((u) => u.name);
@@ -24,6 +25,7 @@ const ALL_USERS = availableMockUsers.map((u) => u.name);
 export default function NovaTarefa() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addNotification } = useNotificationsContext();
 
   // Processo
   const [caseSearch, setCaseSearch] = useState("");
@@ -95,6 +97,15 @@ export default function NovaTarefa() {
     setErrors({});
 
     const responsavelNames = selectedUsers.join(", ");
+    const caseLabel = selectedCase ? ` · ${selectedCase.case_number}` : "";
+
+    // Dispara notificação in-app global
+    addNotification({
+      title: `Tarefa atribuída a você${caseLabel}`,
+      description: description.trim().slice(0, 80) + (description.length > 80 ? "…" : ""),
+      type: "tarefa",
+    });
+
     toast({
       title: "✅ Tarefa criada!",
       description: `Notificação enviada para ${responsavelNames}${manager && manager !== "nenhum" ? ` e gestor ${manager}` : ""}.`,
