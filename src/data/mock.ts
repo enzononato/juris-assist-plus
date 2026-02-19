@@ -276,8 +276,7 @@ export const mockCases: Case[] = [
     lawyer: 'Sullydaiane',
     confidentiality: 'normal',
     filed_at: '2024-03-15',
-    next_hearing: '2026-03-10T14:00:00',
-    next_deadline: '2026-02-28',
+    
     amount: 85000,
     responsible_sector: 'dp',
   },
@@ -296,8 +295,7 @@ export const mockCases: Case[] = [
     lawyer: 'Sullydaiane',
     confidentiality: 'normal',
     filed_at: '2024-06-20',
-    next_hearing: '2026-02-25T10:00:00',
-    next_deadline: '2026-02-20',
+    
     amount: 120000,
     responsible_sector: 'rh',
   },
@@ -316,7 +314,7 @@ export const mockCases: Case[] = [
     lawyer: 'Sullydaiane',
     confidentiality: 'ultra_restrito',
     filed_at: '2025-01-10',
-    next_deadline: '2026-03-05',
+    
     amount: 250000,
     responsible_sector: 'dp',
   },
@@ -353,7 +351,7 @@ export const mockCases: Case[] = [
     lawyer: 'Sullydaiane',
     confidentiality: 'normal',
     filed_at: '2024-11-12',
-    next_deadline: '2026-03-15',
+    
     amount: 175000,
     responsible_sector: 'logistica',
   },
