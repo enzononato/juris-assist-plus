@@ -62,18 +62,17 @@ export default function ProcessoDetalhe() {
   const handleReopen = () => {
     if (!reopenJustificativa.trim()) return;
     setReopenLoading(true);
-    setTimeout(() => {
-      setCurrentStatus("em_andamento");
-      setReopenOpen(false);
-      setReopenJustificativa("");
-      setReopenLoading(false);
-      addNotification({
-        title: "Processo reaberto",
-        description: `O processo ${caso?.case_number} (${caso?.employee}) foi reaberto. Motivo: ${reopenJustificativa.trim()}`,
-        type: "sistema",
-      });
-      toast({ title: "Processo reaberto com sucesso", description: "Status alterado para Em Andamento." });
-    }, 400);
+    const justificativa = reopenJustificativa.trim();
+    setReopenOpen(false);
+    setReopenJustificativa("");
+    setCurrentStatus("em_andamento");
+    setReopenLoading(false);
+    addNotification({
+      title: "Processo reaberto",
+      description: `O processo ${caso?.case_number} (${caso?.employee}) foi reaberto. Motivo: ${justificativa}`,
+      type: "sistema",
+    });
+    toast({ title: "Processo reaberto com sucesso", description: "Status alterado para Em Andamento." });
   };
 
   if (!caso) return <div className="p-8 text-muted-foreground">Processo não encontrado.</div>;
