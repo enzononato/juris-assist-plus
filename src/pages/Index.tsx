@@ -48,14 +48,23 @@ export default function Dashboard() {
     return days <= 7;
   });
   const nextHearing = hearings
-    .filter((h) => h.status === "agendada" && new Date(`${h.date}T${h.time}`) > new Date())
+    .filter((h) => {
+      if (h.status !== "agendada") return false;
+      const caso = cases.find((c) => c.id === h.case_id);
+      if (caso?.status === "encerrado") return false;
+      return new Date(`${h.date}T${h.time}`) > new Date();
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
   const daysToNextHearing = nextHearing
     ? Math.ceil((new Date(`${nextHearing.date}T${nextHearing.time}`).getTime() - Date.now()) / 86400000)
     : null;
   const untreatedAlerts = alerts.filter((a) => !a.treated);
   const upcomingHearings = hearings
-    .filter((h) => h.status === "agendada")
+    .filter((h) => {
+      if (h.status !== "agendada") return false;
+      const caso = cases.find((c) => c.id === h.case_id);
+      return caso?.status !== "encerrado";
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3);
   const urgentTasks = tasks
