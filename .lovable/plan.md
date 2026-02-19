@@ -1,85 +1,59 @@
 
 ## Objetivo
 
-Transformar o botão **"+ Criar"** da sidebar em um fluxo completo inline: ao clicar no dropdown e escolher "Criar Processo" ou "Criar Tarefa", um **Sheet (painel lateral deslizante)** abre com o formulário completo, sem sair da página atual.
+Substituir o botão "Mostrar/Ocultar encerrados" por uma **aba "Encerrados"** dedicada na página de Processos, integrada ao sistema de tabs de status já existente.
 
-## Por que Sheet e não navegação?
+## Análise do Estado Atual
 
-O comportamento descrito ("ao clicar aparece os campos") é um padrão de **painel lateral deslizante** (Sheet/Drawer), que mantém o contexto visual da página atual. Isso é mais ergonômico do que redirecionar o usuário. O componente `Sheet` já está disponível na biblioteca de UI (`src/components/ui/sheet.tsx`).
+Atualmente, a página `Processos.tsx` tem:
+- **Tabs de status**: "Todos", "Novo", "Em Andamento", "Audiência Marcada", "Sentença", "Recurso", "Encerrado" — geradas dinamicamente a partir de `statusLabels`.
+- **Botão separado** "Mostrar/Ocultar encerrados" com estado `showEncerrados` que controla a visibilidade.
+- **Lógica de filtro**: processos encerrados são ocultos por padrão (`if (!showEncerrados && c.status === "encerrado" && statusTab !== "encerrado") return false`).
 
-## Arquitetura das Mudanças
+O problema é que a aba "Encerrado" já existe visualmente nas tabs (linha 549-556), mas os dados mock atuais não têm processos com `status: 'encerrado'`, então a aba não aparece (filtra por `statusCounts[k] > 0`). Além disso, o botão "Mostrar/Ocultar encerrados" está redundante com a aba.
 
-Apenas **um arquivo** precisa ser modificado:
+## Mudanças Necessárias
 
-- `src/components/layout/AppLayout.tsx`
+### 1. `src/data/mock.ts` — Adicionar processos encerrados
 
-Os formulários de `NovoProcesso.tsx` e `NovaTarefa.tsx` permanecem como páginas independentes (para quem acessa via URL direta), mas o conteúdo dos formulários será **replicado inline** dentro do Sheet — ou melhor, os próprios componentes de página serão importados e renderizados dentro do Sheet.
+Adicionar 2–3 processos com `status: 'encerrado'` ao `mockCases` para que a aba seja populada e o usuário possa ver o comportamento real.
 
-### Estratégia de Implementação
+### 2. `src/pages/Processos.tsx` — Refatorar UI
 
-Para evitar duplicar código de formulário, a abordagem mais limpa é:
+**Remover:**
+- Estado `showEncerrados` e seu `useState`.
+- Botão "Mostrar/Ocultar encerrados" do header.
+- A condição `if (!showEncerrados && c.status === "encerrado" && statusTab !== "encerrado") return false` do filtro.
+- Chamada `setShowEncerrados(false)` no `clearAll`.
 
-1. Extrair o conteúdo de `NovoProcesso.tsx` e `NovaTarefa.tsx` para componentes reutilizáveis (`NovoProcessoForm` e `NovaTarefaForm`).
-2. Usar esses componentes tanto nas páginas (`/processos/novo`, `/tarefas/nova`) quanto dentro do Sheet no `AppLayout`.
+**Ajustar:**
+- A lógica de filtro já garante que a aba "encerrado" funciona — ao clicar nela, `statusTab === "encerrado"` e apenas processos encerrados são exibidos.
+- A condição `statusCounts[k] > 0` na renderização das tabs continuará funcionando — a aba "Encerrado" só aparece se houver processos encerrados.
+- Garantir que a aba "Encerrado" tenha visual diferenciado (tom acinzentado/neutro) para sinalizar que são processos arquivados — usando a cor já definida em `statusColors.encerrado`.
 
-Alternativamente (mais simples, sem refatoração das páginas existentes):
+**Comportamento resultante:**
+- Aba "Encerrado (N)" aparece na barra de tabs com badge de contagem.
+- Ao selecionar, exibe apenas os processos encerrados com todos os filtros/ordenação normais.
+- Nos modos "Todos" e demais abas, processos encerrados NÃO aparecem (comportamento atual mantido — encerrados são ocultados das outras abas).
+- No Kanban, a coluna "Encerrado" já existia e continua funcionando.
 
-- Criar os formulários **diretamente no Sheet** em `AppLayout.tsx`, usando estado local para controlar qual formulário exibir.
+## Arquivos a Modificar
 
-Vou usar a **abordagem alternativa mais simples**, criando formulários enxutos dentro do Sheet — com os mesmos campos essenciais — e chamando `navigate()` ou `toast` ao submeter, fechando o Sheet após o sucesso.
+| Arquivo | O que muda |
+|---|---|
+| `src/data/mock.ts` | Adicionar 2 processos com `status: 'encerrado'` |
+| `src/pages/Processos.tsx` | Remover botão/estado `showEncerrados`, ajustar lógica de filtro, garantir que a aba funcione corretamente |
 
-## Fluxo de Interação
+## Comportamento Final
 
 ```text
-[+ Criar v] clicado
-      |
-      v
-Dropdown aparece:
-  ┌─────────────────┐
-  │ 📄 Criar Processo│
-  │ ☑ Criar Tarefa  │
-  └─────────────────┘
-      |
-      v (usuário seleciona)
-Sheet desliza da direita
-      |
-      v
-Formulário preenchido → "Criar" → Sheet fecha + toast de sucesso
+[Tabs de status]
+Todos (5) | Novo (1) | Em Andamento (1) | Audiência Marcada (1) | Sentença (1) | Recurso (1) | Encerrado (2)
+                                                                                                    ↑
+                                                                                          Nova aba dedicada
 ```
 
-## Mudanças Técnicas Detalhadas
-
-### `src/components/layout/AppLayout.tsx`
-
-1. **Importar** `Sheet`, `SheetContent`, `SheetHeader`, `SheetTitle` de `@/components/ui/sheet`.
-2. **Importar** `useNavigate` de `react-router-dom`.
-3. **Estado no `CreateButton`**:
-   - `sheetOpen: boolean` — controla abertura do Sheet.
-   - `sheetType: "processo" | "tarefa" | null` — qual formulário exibir.
-4. **Dropdown modificado**: ao clicar em "Criar Processo" ou "Criar Tarefa", seta o tipo e abre o Sheet (não navega mais).
-5. **Sheet renderizado abaixo do dropdown** com:
-   - `SheetHeader` com título dinâmico ("Novo Processo" / "Nova Tarefa").
-   - Formulário inline com os campos essenciais de cada tipo.
-   - Botões "Criar" e "Cancelar" (fecha o Sheet).
-6. Os formulários **não precisam de `useNavigate`** — ao submeter com sucesso, o Sheet fecha e um `toast` é exibido. A navegação `/processos/novo` e `/tarefas/nova` continua existindo como fallback para quem acessa via URL direta.
-
-### Formulário de Processo (dentro do Sheet):
-- Número do Processo (obrigatório)
-- Nome do Colaborador (obrigatório)
-- Empresa/Filial (Select)
-- Tema (Textarea)
-- Status (Select)
-- Responsável (Select)
-
-### Formulário de Tarefa (dentro do Sheet):
-- Processo vinculado (busca com Popover)
-- Responsáveis (busca multi-select)
-- Descrição (obrigatório)
-- Data + Hora
-- Prioridade (Select)
-
-## O que NÃO muda
-
-- As páginas `/processos/novo` e `/tarefas/nova` continuam funcionando normalmente via URL.
-- Nenhuma lógica de negócio, contextos, ou outros componentes são alterados.
-- O visual do botão "Criar" na sidebar permanece idêntico.
+- Clicar em "Encerrado" → lista/grid/kanban mostra apenas processos encerrados.
+- Os cards de encerrados exibem o badge cinza já estilizado com `statusColors.encerrado`.
+- Um banner informativo sutil pode aparecer no topo da lista de encerrados: "Processos encerrados estão em modo leitura."
+- Nas demais abas, processos encerrados permanecem ocultos (sem poluir a visão ativa).
