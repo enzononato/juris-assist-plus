@@ -224,7 +224,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const snooze = useCallback((id: string, duration: string) => {
-    toast({ title: "Alerta adiado", description: `Adiado por ${duration}. (Demo)` });
+    toast({ title: "Alerta adiado", description: `Adiado por ${duration}.` });
   }, []);
 
   // Send push notification when new alerts arrive

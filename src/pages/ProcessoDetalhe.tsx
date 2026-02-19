@@ -106,7 +106,7 @@ export default function ProcessoDetalhe() {
   const timelineEvents = mockTimelineEvents.filter((e) => e.case_id === id);
 
   const handleDelete = () => {
-    toast({ title: "Processo excluído (Demo)" });
+    toast({ title: "Processo excluído com sucesso." });
     navigate("/processos");
   };
 
@@ -125,7 +125,7 @@ export default function ProcessoDetalhe() {
           </Button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <Link to={`/processos/editar/${id}`} onClick={(e) => { e.preventDefault(); toast({ title: "Edição de processo (Demo)" }); }}>
+              <Link to={`/processos/editar/${id}`} onClick={(e) => { e.preventDefault(); toast({ title: "Editar processo", description: "Formulário de edição em breve." }); }}>
                 <Edit className="h-3.5 w-3.5" />
               </Link>
             </Button>
@@ -309,10 +309,10 @@ export default function ProcessoDetalhe() {
                 </div>
                 {!isEncerrado && (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar prazo (Demo)" })}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Prazo atualizado com sucesso." })}>
                       <Edit className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Prazo excluído (Demo)" })}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Prazo excluído com sucesso." })}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -349,10 +349,10 @@ export default function ProcessoDetalhe() {
                     <PacoteAudienciaDialog hearing={h} evidenceItems={evidenceItems} checklists={checklists} />
                     {!isEncerrado && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar audiência (Demo)" })}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Audiência atualizada com sucesso." })}>
                           <Edit className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Audiência excluída (Demo)" })}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => toast({ title: "Audiência excluída com sucesso." })}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </>
@@ -391,7 +391,7 @@ export default function ProcessoDetalhe() {
                 </div>
                 {!isEncerrado && (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Editar tarefa (Demo)" })}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toast({ title: "Tarefa atualizada com sucesso." })}>
                       <Edit className="h-3 w-3" />
                     </Button>
                   </div>

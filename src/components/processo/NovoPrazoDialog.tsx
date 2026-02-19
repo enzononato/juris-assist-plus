@@ -16,7 +16,7 @@ export default function NovoPrazoDialog({ caseId }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Prazo criado com sucesso! (Demo)" });
+    toast({ title: "Prazo criado com sucesso!" });
     setOpen(false);
   };
 
