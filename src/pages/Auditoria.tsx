@@ -102,7 +102,27 @@ export default function Auditoria() {
   }, {} as Record<string, number>);
 
   const handleExport = () => {
-    toast({ title: "📥 Exportação CSV", description: `${filtered.length} registros exportados. (Demo)` });
+    const headers = ["Data/Hora", "Ação", "Usuário", "Descrição", "Processo", "IP"];
+    const rows = filtered.map((log) => [
+      new Date(log.created_at).toLocaleString("pt-BR"),
+      actionLabels[log.action],
+      log.user,
+      log.description,
+      log.case_number || "",
+      log.ip || "",
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "📥 CSV exportado", description: `${filtered.length} registros baixados com sucesso.` });
   };
 
   return (
