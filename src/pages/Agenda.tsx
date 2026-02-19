@@ -30,7 +30,7 @@ const WEEKDAYS_FULL = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
 const TODAY = new Date(2026, 1, 16);
 
-type ViewType = "mes" | "semana" | "dia";
+type ViewType = "dia" | "semana" | "mes" | "ano";
 type EventFilterType = "todos" | "audiencia" | "prazo" | "tarefa";
 type AssignmentFilter = "todos" | "minhas";
 const CURRENT_USER = "Thiago";
@@ -454,6 +454,74 @@ function DayView({ selectedDate, typeFilter, assignmentFilter, companyFilter, on
   );
 }
 
+// ── Year View ──
+function YearView({ selectedDate, onMonthClick, typeFilter, assignmentFilter, companyFilter, currentUser }: {
+  selectedDate: Date; onMonthClick: (d: Date) => void;
+  typeFilter: EventFilterType; assignmentFilter: AssignmentFilter; companyFilter: string; currentUser?: string;
+}) {
+  const year = selectedDate.getFullYear();
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {MONTHS.map((monthName, monthIdx) => {
+        const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+        let audiencias = 0, prazos = 0, tarefas = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          const date = new Date(year, monthIdx, d);
+          getEventsForDate(date, typeFilter, assignmentFilter, companyFilter, currentUser).forEach((e) => {
+            if (e.type === "audiencia") audiencias++;
+            else if (e.type === "prazo") prazos++;
+            else tarefas++;
+          });
+        }
+        const total = audiencias + prazos + tarefas;
+        const isCurrentMonth = monthIdx === TODAY.getMonth() && year === TODAY.getFullYear();
+        const isSelected = monthIdx === selectedDate.getMonth() && year === selectedDate.getFullYear();
+
+        return (
+          <button
+            key={monthIdx}
+            onClick={() => onMonthClick(new Date(year, monthIdx, 1))}
+            className={cn(
+              "rounded-xl border bg-card p-4 text-left transition-all hover:shadow-card hover:-translate-y-0.5",
+              isCurrentMonth && "ring-2 ring-primary/50",
+              isSelected && !isCurrentMonth && "bg-accent/10",
+            )}
+          >
+            <p className={cn(
+              "text-sm font-bold mb-2",
+              isCurrentMonth && "text-primary",
+            )}>{monthName}</p>
+            {total === 0 ? (
+              <p className="text-[11px] text-muted-foreground/50">Sem eventos</p>
+            ) : (
+              <div className="space-y-1">
+                {audiencias > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Gavel className="h-3 w-3 text-primary" />
+                    <span className="text-[11px] font-medium text-primary">{audiencias} audiência{audiencias > 1 ? "s" : ""}</span>
+                  </div>
+                )}
+                {prazos > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3 w-3 text-warning" />
+                    <span className="text-[11px] font-medium text-warning">{prazos} prazo{prazos > 1 ? "s" : ""}</span>
+                  </div>
+                )}
+                {tarefas > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <ListTodo className="h-3 w-3 text-success" />
+                    <span className="text-[11px] font-medium text-success">{tarefas} tarefa{tarefas > 1 ? "s" : ""}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ═══════════════════════════ MAIN ═══════════════════════════
 export default function Agenda() {
   const { user } = useAuth();
@@ -489,20 +557,23 @@ export default function Agenda() {
 
   const prev = () => {
     const d = new Date(selectedDate);
-    if (view === "mes") d.setMonth(d.getMonth()-1);
+    if (view === "ano") d.setFullYear(d.getFullYear()-1);
+    else if (view === "mes") d.setMonth(d.getMonth()-1);
     else if (view === "semana") d.setDate(d.getDate()-7);
     else d.setDate(d.getDate()-1);
     setSelectedDate(d);
   };
   const next = () => {
     const d = new Date(selectedDate);
-    if (view === "mes") d.setMonth(d.getMonth()+1);
+    if (view === "ano") d.setFullYear(d.getFullYear()+1);
+    else if (view === "mes") d.setMonth(d.getMonth()+1);
     else if (view === "semana") d.setDate(d.getDate()+7);
     else d.setDate(d.getDate()+1);
     setSelectedDate(d);
   };
   const goToToday = () => setSelectedDate(new Date(TODAY));
   const handleDayClick = (date: Date) => { setSelectedDate(date); if (view === "mes") setView("dia"); };
+  const handleMonthClick = (date: Date) => { setSelectedDate(date); setView("mes"); };
 
   const handleExportICS = () => {
     const dateStr = formatDateStr(selectedDate);
@@ -560,6 +631,7 @@ export default function Agenda() {
   };
 
   const headerText = useMemo(() => {
+    if (view === "ano") return `${selectedDate.getFullYear()}`;
     if (view === "mes") return `${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
     if (view === "semana") {
       const week = getWeekDays(selectedDate);
@@ -574,7 +646,13 @@ export default function Agenda() {
   // Period stats
   const periodStats = useMemo(() => {
     const dates: Date[] = [];
-    if (view === "mes") {
+    if (view === "ano") {
+      const year = selectedDate.getFullYear();
+      for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(year, m + 1, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) dates.push(new Date(year, m, d));
+      }
+    } else if (view === "mes") {
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth();
       const daysInMonth = new Date(year, month+1, 0).getDate();
@@ -672,9 +750,10 @@ export default function Agenda() {
             </Tooltip>
             <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
               <TabsList className="h-9">
-                <TabsTrigger value="mes" className="text-xs px-3">Mês</TabsTrigger>
-                <TabsTrigger value="semana" className="text-xs px-3">Semana</TabsTrigger>
                 <TabsTrigger value="dia" className="text-xs px-3">Dia</TabsTrigger>
+                <TabsTrigger value="semana" className="text-xs px-3">Semana</TabsTrigger>
+                <TabsTrigger value="mes" className="text-xs px-3">Mês</TabsTrigger>
+                <TabsTrigger value="ano" className="text-xs px-3">Ano</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -755,6 +834,7 @@ export default function Agenda() {
         {/* Calendar + Side Panel */}
         <div className="flex gap-4">
           <div className="flex-1 min-w-0">
+            {view === "ano" && <YearView selectedDate={selectedDate} onMonthClick={handleMonthClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} />}
             {view === "mes" && <MonthView selectedDate={selectedDate} onDayClick={handleDayClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} />}
             {view === "semana" && <WeekView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} />}
             {view === "dia" && <DayView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} />}
