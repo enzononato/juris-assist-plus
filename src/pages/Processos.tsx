@@ -288,7 +288,7 @@ export default function Processos() {
   const [statusTab, setStatusTab] = useState("em_andamento");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [themeFilter, setThemeFilter] = useState("all");
-  const [showEncerrados, setShowEncerrados] = useState(false);
+  
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<SortField>("filed_at");
@@ -304,8 +304,8 @@ export default function Processos() {
 
   const filtered = useMemo(() => {
     let result = cases.filter((c) => {
-      // MVP: encerrados são ocultos por padrão
-      if (!showEncerrados && c.status === "encerrado" && statusTab !== "encerrado") return false;
+      // Encerrados só aparecem na aba "encerrado"
+      if (c.status === "encerrado" && statusTab !== "encerrado") return false;
       const matchesSearch =
         !search.trim() ||
         c.case_number.includes(search) ||
@@ -315,7 +315,7 @@ export default function Processos() {
         c.responsible.toLowerCase().includes(search.toLowerCase());
       const matchesCompany = companyFilter === "all" || c.company_id === companyFilter;
       const matchesStatus = statusTab === "todos" || statusTab === "em_andamento"
-        ? (statusTab === "todos" ? true : c.status !== "encerrado")
+        ? (statusTab === "todos" ? true : c.status === "em_andamento")
         : c.status === statusTab;
       const matchesResponsible = responsibleFilter === "all" || c.responsible === responsibleFilter;
       const matchesTheme = themeFilter === "all" || c.theme === themeFilter;
@@ -373,7 +373,7 @@ export default function Processos() {
   }, [cases]);
 
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { todos: cases.length };
+    const counts: Record<string, number> = { todos: cases.filter((c) => c.status !== "encerrado").length };
     (Object.keys(statusLabels) as CaseStatus[]).forEach((s) => {
       counts[s] = cases.filter((c) => c.status === s).length;
     });
@@ -398,7 +398,6 @@ export default function Processos() {
     setStatusTab("em_andamento");
     setResponsibleFilter("all");
     setThemeFilter("all");
-    setShowEncerrados(false);
   };
 
   const exportCSV = () => {
@@ -506,23 +505,12 @@ export default function Processos() {
             </TooltipContent>
           </Tooltip>
           {!isExternal && (
-            <>
-              <Button
-                variant={showEncerrados ? "default" : "outline"}
-                size="sm"
-                className="gap-1.5 h-9 rounded-xl text-xs"
-                onClick={() => setShowEncerrados((v) => !v)}
-              >
-                <Eye className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{showEncerrados ? "Ocultar encerrados" : "Mostrar encerrados"}</span>
-              </Button>
-              <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
-                <Link to="/processos/novo">
-                  <Plus className="h-4 w-4" />
-                  Novo Processo
-                </Link>
-              </Button>
-            </>
+            <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
+              <Link to="/processos/novo">
+                <Plus className="h-4 w-4" />
+                Novo Processo
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -660,6 +648,14 @@ export default function Processos() {
           </div>
         )}
       </div>
+
+      {/* Banner encerrados */}
+      {statusTab === "encerrado" && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-muted-foreground/20 bg-muted/50 px-4 py-3 text-sm text-muted-foreground animate-in fade-in duration-300">
+          <Scale className="h-4 w-4 shrink-0" />
+          <span>Processos encerrados estão em <strong>modo leitura</strong>. Novas tarefas, prazos e audiências não podem ser adicionados.</span>
+        </div>
+      )}
 
       {/* Content */}
       <TooltipProvider>
