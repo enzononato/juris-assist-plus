@@ -51,7 +51,9 @@ export default function Tarefas() {
   const filtered = useMemo(() => {
     let result = tasks;
 
-    if (tab !== "todas") {
+    if (tab === "todas") {
+      result = result.filter((t) => t.status !== "concluida");
+    } else {
       result = result.filter((t) => t.status === tab);
     }
 
@@ -113,7 +115,7 @@ export default function Tarefas() {
   };
 
   const counts = {
-    todas: tasks.length,
+    todas: tasks.filter(t => t.status !== "concluida").length,
     aberta: tasks.filter(t => t.status === "aberta").length,
     em_andamento: tasks.filter(t => t.status === "em_andamento").length,
     aguardando: tasks.filter(t => t.status === "aguardando").length,
