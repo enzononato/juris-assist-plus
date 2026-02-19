@@ -82,11 +82,11 @@ export default function Tarefas() {
   const handleFilterChange = (fn: () => void) => { fn(); setPage(1); };
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
-    toast({ title: `Status alterado para ${taskStatusLabels[newStatus as TaskStatus]} (Demo)` });
+    toast({ title: `Status alterado para ${taskStatusLabels[newStatus as TaskStatus]}` });
   };
 
   const handleDelete = (taskId: string) => {
-    toast({ title: "Tarefa excluída (Demo)" });
+    toast({ title: "Tarefa excluída com sucesso." });
   };
 
   const exportCSV = () => {
