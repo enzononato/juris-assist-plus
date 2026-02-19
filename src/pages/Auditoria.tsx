@@ -70,13 +70,17 @@ export default function Auditoria() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [processoFilter, setProcessoFilter] = useState("");
   const [tab, setTab] = useState("logs");
 
   const uniqueUsers = [...new Set(mockAuditLogs.map((l) => l.user))];
 
+  const uniqueProcessos = [...new Set(mockAuditLogs.map((l) => l.case_number).filter(Boolean))] as string[];
+
   const filtered = mockAuditLogs.filter((log) => {
     if (actionFilter !== "todas" && log.action !== actionFilter) return false;
     if (userFilter !== "todos" && log.user !== userFilter) return false;
+    if (processoFilter !== "" && log.case_number !== processoFilter) return false;
     if (dateFrom && new Date(log.created_at) < new Date(dateFrom)) return false;
     if (dateTo && new Date(log.created_at) > new Date(dateTo + "T23:59:59")) return false;
     if (searchQuery) {
@@ -148,6 +152,15 @@ export default function Auditoria() {
               <SelectContent>
                 <SelectItem value="todos">Todos os usuários</SelectItem>
                 {uniqueUsers.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={processoFilter} onValueChange={setProcessoFilter}>
+              <SelectTrigger className="w-[220px] h-9 text-xs">
+                <SelectValue placeholder="Todos os processos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os processos</SelectItem>
+                {uniqueProcessos.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
             <div className="flex gap-1.5 items-center">
