@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, CalendarDays, Clock, CheckCircle2,
   Filter, Download, X, ExternalLink, CalendarCheck, Gavel, AlertTriangle,
-  ListTodo, Calendar as CalendarIcon, PanelRightOpen, PanelRightClose,
+  ListTodo, Calendar as CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -467,7 +467,6 @@ export default function Agenda() {
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>(isAdmin ? "todos" : "minhas");
   const [companyFilter, setCompanyFilter] = useState("todas");
   const [showFilters, setShowFilters] = useState(false);
-  const [showSidePanel, setShowSidePanel] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   // Year selector
@@ -597,11 +596,6 @@ export default function Agenda() {
     return { audiencias, prazos, tarefas, total: audiencias + prazos + tarefas };
   }, [selectedDate, view, assignmentFilter, companyFilter]);
 
-  // Side panel events
-  const sidePanelEvents = useMemo(() =>
-    getEventsForDate(selectedDate, typeFilter, assignmentFilter, companyFilter, currentUserName),
-    [selectedDate, typeFilter, assignmentFilter, companyFilter, currentUserName]
-  );
 
   const activeFilters = (typeFilter !== "todos" ? 1 : 0) + (assignmentFilter !== "todos" ? 1 : 0) + (companyFilter !== "todas" ? 1 : 0);
   const isToday = isSameDay(selectedDate, TODAY);
@@ -675,14 +669,6 @@ export default function Agenda() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Exportar eventos do período como CSV</p></TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg hidden lg:flex" onClick={() => setShowSidePanel(!showSidePanel)}>
-                  {showSidePanel ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p className="text-xs">{showSidePanel ? "Ocultar painel" : "Mostrar painel"}</p></TooltipContent>
             </Tooltip>
             <Tabs value={view} onValueChange={(v) => setView(v as ViewType)}>
               <TabsList className="h-9">
@@ -774,12 +760,6 @@ export default function Agenda() {
             {view === "dia" && <DayView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} />}
           </div>
 
-          {/* Side Panel - Desktop only */}
-          {showSidePanel && (
-            <div className="hidden lg:block animate-in fade-in slide-in-from-left-2 duration-300">
-              <SidePanel date={selectedDate} events={sidePanelEvents} onEventClick={setSelectedEvent} />
-            </div>
-          )}
         </div>
 
         {/* Legend */}
