@@ -762,27 +762,6 @@ export default function Agenda() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Assignment filter – always visible */}
-            <div className="flex rounded-lg border bg-muted/40 p-0.5 gap-0.5">
-              <button
-                onClick={() => setAssignmentFilter("minhas")}
-                className={cn(
-                  "rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
-                  assignmentFilter === "minhas" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Minhas atribuições
-              </button>
-              <button
-                onClick={() => setAssignmentFilter("todos")}
-                className={cn(
-                  "rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
-                  assignmentFilter === "todos" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Todas
-              </button>
-            </div>
 
             {/* Year selector */}
             <Select value={String(selectedDate.getFullYear())} onValueChange={handleYearChange}>
