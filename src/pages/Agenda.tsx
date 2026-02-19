@@ -992,7 +992,10 @@ export default function Agenda() {
         <div className="mt-6">
           <h3 className="mb-3 text-sm font-bold">Próximos Eventos</h3>
           <div className="space-y-2">
-            {mockHearings.map((h) => (
+            {mockHearings.filter((h) => {
+              const caso = mockCases.find((c) => c.id === h.case_id);
+              return caso?.status !== "encerrado";
+            }).map((h) => (
               <Link key={h.id} to={`/processos/${h.case_id}`}
                 className="group flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
