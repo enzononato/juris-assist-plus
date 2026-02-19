@@ -208,58 +208,58 @@ export default function ProcessoDetalhe() {
               Este processo foi encerrado. Não é possível criar novas tarefas, prazos ou audiências. Apenas o histórico pode ser consultado.
             </p>
           </div>
-          <Dialog open={reopenOpen} onOpenChange={setReopenOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 shrink-0 text-xs">
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reabrir processo
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Reabrir processo</DialogTitle>
-                <DialogDescription>
-                  Informe o motivo da reabertura. Uma notificação será enviada para os responsáveis.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3 py-2">
-                <div className="rounded-lg border border-muted bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <span className="font-medium">{caso.case_number}</span> — {caso.employee}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="reopen-justificativa" className="text-sm">
-                    Justificativa <span className="text-destructive">*</span>
-                  </Label>
-                  <Textarea
-                    id="reopen-justificativa"
-                    placeholder="Descreva o motivo da reabertura..."
-                    className="min-h-[100px] resize-none text-sm"
-                    value={reopenJustificativa}
-                    onChange={(e) => setReopenJustificativa(e.target.value)}
-                  />
-                  {reopenJustificativa.trim() === "" && (
-                    <p className="text-xs text-muted-foreground">Campo obrigatório.</p>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => { setReopenOpen(false); setReopenJustificativa(""); }}>
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={!reopenJustificativa.trim() || reopenLoading}
-                  onClick={handleReopen}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  {reopenLoading ? "Reabrindo..." : "Confirmar reabertura"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" size="sm" className="gap-1.5 shrink-0 text-xs" onClick={() => setReopenOpen(true)}>
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reabrir processo
+          </Button>
         </div>
       )}
+
+      {/* Dialog de reabertura — fora do banner condicional para não ser desmontado */}
+      <Dialog open={reopenOpen} onOpenChange={setReopenOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reabrir processo</DialogTitle>
+            <DialogDescription>
+              Informe o motivo da reabertura. Uma notificação será enviada para os responsáveis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg border border-muted bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-medium">{caso.case_number}</span> — {caso.employee}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reopen-justificativa" className="text-sm">
+                Justificativa <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="reopen-justificativa"
+                placeholder="Descreva o motivo da reabertura..."
+                className="min-h-[100px] resize-none text-sm"
+                value={reopenJustificativa}
+                onChange={(e) => setReopenJustificativa(e.target.value)}
+              />
+              {reopenJustificativa.trim() === "" && (
+                <p className="text-xs text-muted-foreground">Campo obrigatório.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => { setReopenOpen(false); setReopenJustificativa(""); }}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={!reopenJustificativa.trim() || reopenLoading}
+              onClick={handleReopen}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              {reopenLoading ? "Reabrindo..." : "Confirmar reabertura"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="resumo">
         <TabsList className="mb-4 w-full justify-start overflow-x-auto">
