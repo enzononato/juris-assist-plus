@@ -373,7 +373,7 @@ export default function Processos() {
       const days = Math.ceil((new Date(c.next_deadline).getTime() - Date.now()) / 86400000);
       return days >= 0 && days <= 7;
     }).length;
-    const totalAmount = cases.reduce((sum, c) => sum + (c.amount ?? 0), 0);
+    const totalAmount = activeCases.reduce((sum, c) => sum + (c.amount ?? 0), 0);
     return {
       total: cases.length,
       emAndamento: activeCases.filter((c) => c.status === "em_andamento").length,
