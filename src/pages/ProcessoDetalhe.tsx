@@ -57,17 +57,22 @@ export default function ProcessoDetalhe() {
   // Reabertura
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenJustificativa, setReopenJustificativa] = useState("");
-  const [reopenLoading, setReopenLoading] = useState(false);
+  const [reopenInfo, setReopenInfo] = useState<{ date: string; justificativa: string } | null>(null);
 
   const handleReopen = () => {
     if (!reopenJustificativa.trim()) return;
     const justificativa = reopenJustificativa.trim();
+    const now = new Date();
     // Mutate mock data so status persists across re-renders/remounts
     const mockCase = mockCases.find((c) => c.id === id);
     if (mockCase) mockCase.status = "em_andamento";
     setCurrentStatus("em_andamento");
     setReopenOpen(false);
     setReopenJustificativa("");
+    setReopenInfo({
+      date: now.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
+      justificativa,
+    });
     addNotification({
       title: "Processo reaberto",
       description: `O processo ${caso?.case_number} (${caso?.employee}) foi reaberto. Motivo: ${justificativa}`,
@@ -219,6 +224,27 @@ export default function ProcessoDetalhe() {
         </div>
       )}
 
+      {/* Banner de reabertura — exibido após reabrir o processo */}
+      {reopenInfo && !isEncerrado && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-success/30 bg-success/5 px-4 py-3">
+          <RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-success">Processo reaberto</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Reaberto em <span className="font-medium">{reopenInfo.date}</span> — Motivo: {reopenInfo.justificativa}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setReopenInfo(null)}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
       {/* Dialog de reabertura — fora do banner condicional para não ser desmontado */}
       <Dialog open={reopenOpen} onOpenChange={setReopenOpen}>
         <DialogContent className="max-w-md">
@@ -255,11 +281,11 @@ export default function ProcessoDetalhe() {
             <Button
               size="sm"
               className="gap-1.5"
-              disabled={!reopenJustificativa.trim() || reopenLoading}
+              disabled={!reopenJustificativa.trim()}
               onClick={handleReopen}
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              {reopenLoading ? "Reabrindo..." : "Confirmar reabertura"}
+              Confirmar reabertura
             </Button>
           </DialogFooter>
         </DialogContent>
