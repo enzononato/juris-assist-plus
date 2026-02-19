@@ -1,13 +1,14 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, CalendarDays, Clock, User, Shield, Edit, Trash2, Plus, Save, X, Lock, Info } from "lucide-react";
+import { ArrowLeft, Shield, Edit, Trash2, Plus, X, Lock, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -20,6 +21,7 @@ import {
   type CaseStatus,
 } from "@/data/mock";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotificationsContext } from "@/contexts/NotificationsContext";
 import ProvasTab from "@/components/provas/ProvasTab";
 import ChecklistsTab from "@/components/checklists/ChecklistsTab";
 import TimelineTab from "@/components/timeline/TimelineTab";
@@ -44,12 +46,35 @@ export default function ProcessoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canAccessCompany, hasRole } = useAuth();
+  const { addNotification } = useNotificationsContext();
 
   const caso = mockCases.find((c) => c.id === id);
 
   const [editStatus, setEditStatus] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<CaseStatus>(caso?.status ?? "novo");
   const isEncerrado = currentStatus === "encerrado";
+
+  // Reabertura
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenJustificativa, setReopenJustificativa] = useState("");
+  const [reopenLoading, setReopenLoading] = useState(false);
+
+  const handleReopen = () => {
+    if (!reopenJustificativa.trim()) return;
+    setReopenLoading(true);
+    setTimeout(() => {
+      setCurrentStatus("em_andamento");
+      setReopenOpen(false);
+      setReopenJustificativa("");
+      setReopenLoading(false);
+      addNotification({
+        title: "Processo reaberto",
+        description: `O processo ${caso?.case_number} (${caso?.employee}) foi reaberto. Motivo: ${reopenJustificativa.trim()}`,
+        type: "sistema",
+      });
+      toast({ title: "Processo reaberto com sucesso", description: "Status alterado para Em Andamento." });
+    }, 400);
+  };
 
   if (!caso) return <div className="p-8 text-muted-foreground">Processo não encontrado.</div>;
 
@@ -184,6 +209,56 @@ export default function ProcessoDetalhe() {
               Este processo foi encerrado. Não é possível criar novas tarefas, prazos ou audiências. Apenas o histórico pode ser consultado.
             </p>
           </div>
+          <Dialog open={reopenOpen} onOpenChange={setReopenOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0 text-xs">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reabrir processo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Reabrir processo</DialogTitle>
+                <DialogDescription>
+                  Informe o motivo da reabertura. Uma notificação será enviada para os responsáveis.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="rounded-lg border border-muted bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  <span className="font-medium">{caso.case_number}</span> — {caso.employee}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="reopen-justificativa" className="text-sm">
+                    Justificativa <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="reopen-justificativa"
+                    placeholder="Descreva o motivo da reabertura..."
+                    className="min-h-[100px] resize-none text-sm"
+                    value={reopenJustificativa}
+                    onChange={(e) => setReopenJustificativa(e.target.value)}
+                  />
+                  {reopenJustificativa.trim() === "" && (
+                    <p className="text-xs text-muted-foreground">Campo obrigatório.</p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => { setReopenOpen(false); setReopenJustificativa(""); }}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={!reopenJustificativa.trim() || reopenLoading}
+                  onClick={handleReopen}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {reopenLoading ? "Reabrindo..." : "Confirmar reabertura"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
