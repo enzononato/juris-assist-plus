@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X, Download } from "lucide-react";
+import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +38,8 @@ export default function Tarefas() {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("todas");
   const [assigneeFilter, setAssigneeFilter] = useState("todos");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { tasks } = useTenantData();
 
   const allAssignees = useMemo(() => {
@@ -73,6 +75,11 @@ export default function Tarefas() {
 
     return result;
   }, [tasks, tab, search, priorityFilter, assigneeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const handleFilterChange = (fn: () => void) => { fn(); setPage(1); };
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
     toast({ title: `Status alterado para ${taskStatusLabels[newStatus as TaskStatus]} (Demo)` });
@@ -126,7 +133,7 @@ export default function Tarefas() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Tarefas</h1>
-          <p className="text-sm text-muted-foreground font-medium">
+        <p className="text-sm text-muted-foreground font-medium">
             <span className="text-foreground font-semibold">{filtered.length}</span> tarefa(s)
             {activeFilters > 0 && <span className="text-primary"> · {activeFilters} filtro(s) ativo(s)</span>}
           </p>
@@ -164,7 +171,7 @@ export default function Tarefas() {
           )}
         </div>
         <div className="flex gap-2">
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <Select value={priorityFilter} onValueChange={(v) => handleFilterChange(() => setPriorityFilter(v))}>
             <SelectTrigger className="h-9 w-[140px] text-xs rounded-lg">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
@@ -175,7 +182,7 @@ export default function Tarefas() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <Select value={assigneeFilter} onValueChange={(v) => handleFilterChange(() => setAssigneeFilter(v))}>
             <SelectTrigger className="h-9 w-[150px] text-xs rounded-lg">
               <SelectValue placeholder="Responsável" />
             </SelectTrigger>
@@ -194,7 +201,7 @@ export default function Tarefas() {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={(v) => handleFilterChange(() => setTab(v))}>
         <div className="mb-5 overflow-x-auto scrollbar-hide">
           <TabsList className="w-max">
             <TabsTrigger value="todas">Todas ({counts.todas})</TabsTrigger>
@@ -208,7 +215,7 @@ export default function Tarefas() {
 
       <TooltipProvider>
         <div className="space-y-2">
-          {filtered.map((t, index) => {
+          {paginated.map((t, index) => {
             const isOverdue = t.status !== "concluida" && new Date(t.due_at) < new Date();
             return (
               <div
@@ -300,6 +307,69 @@ export default function Tarefas() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Exibir</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                <SelectTrigger className="h-8 w-[70px] rounded-lg text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {[10, 20, 50].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span>por página · <strong className="text-foreground">{filtered.length}</strong> total</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setPage(1)} disabled={page === 1} aria-label="Primeira página">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} aria-label="Página anterior">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                  if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push("…");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "…" ? (
+                    <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={page === p ? "default" : "outline"}
+                      size="icon"
+                      className={cn("h-8 w-8 rounded-lg text-xs", page === p && "shadow-glow-primary/20")}
+                      onClick={() => setPage(p as number)}
+                      aria-label={`Página ${p}`}
+                      aria-current={page === p ? "page" : undefined}
+                    >
+                      {p}
+                    </Button>
+                  )
+                )}
+              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Próxima página">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label="Última página">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground hidden sm:block">
+              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} de {filtered.length}
+            </p>
+          </div>
+        )}
       </TooltipProvider>
     </div>
   );
