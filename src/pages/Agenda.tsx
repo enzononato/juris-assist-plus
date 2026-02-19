@@ -91,6 +91,7 @@ function getEventsForDate(
     mockHearings.forEach((h) => {
       if (h.date !== dateStr) return;
       const caso = mockCases.find((c) => c.id === h.case_id);
+      if (caso?.status === "encerrado") return;
       if (!canUserSeeCase(caso, user, userRole)) return;
       if (companyFilter !== "todas" && caso?.company_id !== companyFilter) return;
       if (assignmentFilter === "minhas" && caso?.responsible !== user) return;
@@ -106,6 +107,7 @@ function getEventsForDate(
   if (typeFilter === "todos" || typeFilter === "prazo") {
     mockDeadlines.forEach((d) => {
       if (d.due_at !== dateStr) return;
+      if (d.status === "cumprido") return;
       const caso = mockCases.find((c) => c.id === d.case_id);
       if (!canUserSeeCase(caso, user, userRole)) return;
       if (companyFilter !== "todas" && caso?.company_id !== companyFilter) return;
@@ -120,6 +122,7 @@ function getEventsForDate(
   if (typeFilter === "todos" || typeFilter === "tarefa") {
     mockTasks.filter((t) => t.show_in_calendar).forEach((t) => {
       if (!t.due_at.startsWith(dateStr)) return;
+      if (t.status === "concluida") return;
       const caso = t.case_id ? mockCases.find((c) => c.id === t.case_id) : undefined;
       // Para tarefas: mostrar se a tarefa está atribuída ao usuário OU se o caso é visível
       const caseVisible = caso ? canUserSeeCase(caso, user, userRole) : true;
