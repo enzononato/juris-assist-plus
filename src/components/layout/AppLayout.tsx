@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import {
   ClipboardList,
@@ -14,6 +14,9 @@ import {
   LogOut,
   Building2,
   Shield,
+  FileText,
+  CheckSquare,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +25,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth, roleLabels } from "@/contexts/AuthContext";
 import { useAlerts } from "@/contexts/AlertsContext";
 import JuriaChatButton from "@/components/ai/JuriaChatButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const allNavItems = [
   { label: "Dashboard", mobileLabel: "Home", icon: LayoutDashboard, path: "/dashboard", external: true, adminOnly: false },
@@ -34,6 +43,40 @@ const allNavItems = [
   { label: "Alertas", mobileLabel: "Alertas", icon: Bell, path: "/alertas", external: true, adminOnly: true },
   { label: "Menu", mobileLabel: "Menu", icon: Menu, path: "/menu", external: false, adminOnly: true },
 ];
+
+function CreateButton({ className }: { className?: string }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          className={cn(
+            "gap-2 rounded-xl font-semibold shadow-glow-primary/50 transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]",
+            className
+          )}
+          style={{ background: "var(--gradient-primary)" }}
+        >
+          <Plus className="h-4 w-4" />
+          Criar
+          <ChevronDown className="h-3 w-3 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem asChild>
+          <Link to="/processos/novo" className="flex items-center gap-2 cursor-pointer">
+            <FileText className="h-4 w-4 text-primary" />
+            <span>Criar Processo</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/tarefas/nova" className="flex items-center gap-2 cursor-pointer">
+            <CheckSquare className="h-4 w-4 text-success" />
+            <span>Criar Tarefa</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -130,14 +173,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {/* Create button */}
+        {/* Create button with dropdown */}
         <div className="px-3 pb-3">
-          <Button asChild className="w-full gap-2 rounded-xl h-10 font-semibold shadow-glow-primary/50 transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" style={{ background: "var(--gradient-primary)" }}>
-            <Link to="/tarefas/nova">
-              <Plus className="h-4 w-4" />
-              Criar
-            </Link>
-          </Button>
+          <CreateButton className="w-full h-10" />
         </div>
 
         {/* Navigation */}
@@ -155,7 +193,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                     : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                 )}
               >
-                {/* Active indicator */}
                 {active && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full" style={{ background: "var(--gradient-primary)" }} />
                 )}

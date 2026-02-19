@@ -285,9 +285,10 @@ export default function Processos() {
   const isExternal = hasRole(["advogado_externo"]);
   const [search, setSearch] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
-  const [statusTab, setStatusTab] = useState("todos");
+  const [statusTab, setStatusTab] = useState("em_andamento");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [themeFilter, setThemeFilter] = useState("all");
+  const [showEncerrados, setShowEncerrados] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<SortField>("filed_at");
@@ -303,6 +304,8 @@ export default function Processos() {
 
   const filtered = useMemo(() => {
     let result = cases.filter((c) => {
+      // MVP: encerrados são ocultos por padrão
+      if (!showEncerrados && c.status === "encerrado" && statusTab !== "encerrado") return false;
       const matchesSearch =
         !search.trim() ||
         c.case_number.includes(search) ||
@@ -311,7 +314,9 @@ export default function Processos() {
         c.company.toLowerCase().includes(search.toLowerCase()) ||
         c.responsible.toLowerCase().includes(search.toLowerCase());
       const matchesCompany = companyFilter === "all" || c.company_id === companyFilter;
-      const matchesStatus = statusTab === "todos" || c.status === statusTab;
+      const matchesStatus = statusTab === "todos" || statusTab === "em_andamento"
+        ? (statusTab === "todos" ? true : c.status !== "encerrado")
+        : c.status === statusTab;
       const matchesResponsible = responsibleFilter === "all" || c.responsible === responsibleFilter;
       const matchesTheme = themeFilter === "all" || c.theme === themeFilter;
       return matchesSearch && matchesCompany && matchesStatus && matchesResponsible && matchesTheme;
@@ -390,9 +395,10 @@ export default function Processos() {
   const clearAll = () => {
     setSearch("");
     setCompanyFilter("all");
-    setStatusTab("todos");
+    setStatusTab("em_andamento");
     setResponsibleFilter("all");
     setThemeFilter("all");
+    setShowEncerrados(false);
   };
 
   const exportCSV = () => {
@@ -500,12 +506,23 @@ export default function Processos() {
             </TooltipContent>
           </Tooltip>
           {!isExternal && (
-            <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
-              <Link to="/processos/novo">
-                <Plus className="h-4 w-4" />
-                Novo Processo
-              </Link>
-            </Button>
+            <>
+              <Button
+                variant={showEncerrados ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 h-9 rounded-xl text-xs"
+                onClick={() => setShowEncerrados((v) => !v)}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{showEncerrados ? "Ocultar encerrados" : "Mostrar encerrados"}</span>
+              </Button>
+              <Button className="gap-2 rounded-xl shadow-glow-primary transition-all hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]" size="sm" asChild style={{ background: "var(--gradient-primary)" }}>
+                <Link to="/processos/novo">
+                  <Plus className="h-4 w-4" />
+                  Novo Processo
+                </Link>
+              </Button>
+            </>
           )}
         </div>
       </div>
