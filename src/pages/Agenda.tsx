@@ -19,6 +19,7 @@ import {
 } from "@/data/mock";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 
 
@@ -510,6 +511,55 @@ export default function Agenda() {
     downloadICS(events, dateStr);
   };
 
+  const handleExportCSV = () => {
+    // Collect all events in the current view period
+    const dates: Date[] = [];
+    if (view === "mes") {
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let i = 1; i <= daysInMonth; i++) dates.push(new Date(year, month, i));
+    } else if (view === "semana") {
+      dates.push(...getWeekDays(selectedDate));
+    } else {
+      dates.push(selectedDate);
+    }
+
+    const allEvents: (CalendarEvent & { dateLabel: string })[] = [];
+    dates.forEach((d) => {
+      const evs = getEventsForDate(d, typeFilter, assignmentFilter, companyFilter, currentUserName);
+      evs.forEach((e) => allEvents.push({ ...e, dateLabel: d.toLocaleDateString("pt-BR") }));
+    });
+
+    if (allEvents.length === 0) {
+      toast({ title: "Nenhum evento para exportar no período atual." });
+      return;
+    }
+
+    const BOM = "\uFEFF";
+    const headers = ["Tipo", "Título", "Data", "Hora", "Processo", "Reclamante/Colaborador", "Responsáveis", "Detalhe"];
+    const typeLabel: Record<string, string> = { audiencia: "Audiência", prazo: "Prazo", tarefa: "Tarefa" };
+    const rows = allEvents.map((e) => [
+      typeLabel[e.type] ?? e.type,
+      `"${(e.title ?? "").replace(/"/g, '""')}"`,
+      e.dateLabel,
+      e.time ?? "",
+      e.caseNumber ?? "",
+      e.employee ?? "",
+      `"${(e.assignees ?? []).join(", ")}"`,
+      `"${(e.detail ?? "").replace(/"/g, '""')}"`,
+    ]);
+    const csv = BOM + [headers, ...rows].map((r) => r.join(";")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `agenda_${headerText.replace(/\s/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `📥 CSV exportado`, description: `${allEvents.length} evento(s) do período "${headerText}"` });
+  };
+
   const headerText = useMemo(() => {
     if (view === "mes") return `${MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
     if (view === "semana") {
@@ -616,6 +666,16 @@ export default function Agenda() {
                 </Badge>
               )}
             </Button>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-lg" onClick={handleExportCSV}>
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Exportar CSV</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p className="text-xs">Exportar eventos do período como CSV</p></TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg hidden lg:flex" onClick={() => setShowSidePanel(!showSidePanel)}>
