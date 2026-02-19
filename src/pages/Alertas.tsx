@@ -1,98 +1,273 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  Bell, CalendarDays, Clock, FileText, CheckCircle2, BellOff,
-  ExternalLink, UserPlus, AlarmClock, MoreHorizontal, ArrowUpRight,
-  Mail, AlertTriangle, TrendingUp, MessageCircle, Phone,
-  BellRing, BellPlus, Smartphone,
+  Bell, CalendarDays, Clock, CheckCircle2, BellOff,
+  AlarmClock, CheckCheck, BellRing, BellPlus, Smartphone,
+  ChevronRight, ExternalLink, Circle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { mockCases, type Alert, type AlertType, type AlertSeverity } from "@/data/mock";
+import { mockCases, mockHearings, mockDeadlines, mockTasks } from "@/data/mock";
 import { useAlerts } from "@/contexts/AlertsContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { format, differenceInDays, isPast, isToday, isTomorrow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const typeIcons: Record<AlertType, React.ReactNode> = {
-  prazo: <Clock className="h-4 w-4" />,
-  audiencia: <CalendarDays className="h-4 w-4" />,
-  tarefa: <CheckCircle2 className="h-4 w-4" />,
-  prova: <FileText className="h-4 w-4" />,
-  publicacao: <Bell className="h-4 w-4" />,
+// ── Helpers ──────────────────────────────────────────────────────────────────
+type MVPAlert = {
+  id: string;
+  type: "prazo" | "audiencia" | "tarefa";
+  title: string;
+  subtitle: string;
+  case_number?: string;
+  case_id?: string;
+  event_date: string;
+  days_until: number;
+  urgency: "urgente" | "atencao" | "info";
+  treated: boolean;
+  assignees?: string[];
 };
 
-const severityStyles: Record<AlertSeverity, string> = {
-  info: "border-l-info bg-info/5",
-  atencao: "border-l-warning bg-warning/5",
+function buildAlerts(currentUser: string | null): MVPAlert[] {
+  const alerts: MVPAlert[] = [];
+  const now = new Date();
+
+  // Audiências: 30 / 7 / 1 dia antes
+  mockHearings.forEach((h) => {
+    const caso = mockCases.find((c) => c.id === h.case_id);
+    const date = new Date(`${h.date}T${h.time}`);
+    const days = differenceInDays(date, now);
+    if (days < 0 || days > 30) return;
+    if (h.status === "cancelada" || h.status === "realizada") return;
+    const offsetMatches = days <= 1 || days <= 7 || days <= 30;
+    if (!offsetMatches) return;
+
+    alerts.push({
+      id: `aud-${h.id}`,
+      type: "audiencia",
+      title: `${h.type} – ${h.employee}`,
+      subtitle: `${h.court} · ${format(date, "dd/MM/yyyy 'às' HH:mm")}`,
+      case_number: h.case_number,
+      case_id: h.case_id,
+      event_date: `${h.date}T${h.time}`,
+      days_until: days,
+      urgency: days <= 1 ? "urgente" : days <= 7 ? "atencao" : "info",
+      treated: false,
+      assignees: caso ? [caso.responsible] : [],
+    });
+  });
+
+  // Prazos: 30 / 7 / 1 dia antes
+  mockDeadlines.forEach((d) => {
+    if (d.status === "cumprido") return;
+    const date = new Date(d.due_at);
+    const days = differenceInDays(date, now);
+    if (days < 0 || days > 30) return;
+
+    alerts.push({
+      id: `pra-${d.id}`,
+      type: "prazo",
+      title: `${d.title} – ${d.employee}`,
+      subtitle: `Vence em ${format(date, "dd/MM/yyyy")}`,
+      case_number: d.case_number,
+      case_id: d.case_id,
+      event_date: d.due_at,
+      days_until: days,
+      urgency: days <= 1 ? "urgente" : days <= 7 ? "atencao" : "info",
+      treated: false,
+    });
+  });
+
+  // Tarefas: 1 dia antes e no vencimento
+  mockTasks.forEach((t) => {
+    if (t.status === "concluida") return;
+    const date = new Date(t.due_at);
+    const days = differenceInDays(date, now);
+    if (days < 0 || days > 1) return;
+
+    // Filtrar por usuário atual (minhas tarefas)
+    if (currentUser && !t.assignees.includes(currentUser)) return;
+
+    alerts.push({
+      id: `tar-${t.id}`,
+      type: "tarefa",
+      title: t.title,
+      subtitle: t.case_number
+        ? `Processo ${t.case_number}`
+        : "Sem processo vinculado",
+      case_number: t.case_number,
+      case_id: t.case_id,
+      event_date: t.due_at,
+      days_until: days,
+      urgency: days <= 0 ? "urgente" : "atencao",
+      treated: false,
+      assignees: t.assignees,
+    });
+  });
+
+  return alerts.sort((a, b) => a.days_until - b.days_until);
+}
+
+function daysLabel(days: number) {
+  if (days <= 0) return "Hoje";
+  if (days === 1) return "Amanhã";
+  return `${days} dias`;
+}
+
+const urgencyColors = {
   urgente: "border-l-destructive bg-destructive/5",
+  atencao: "border-l-warning bg-warning/5",
+  info: "border-l-primary bg-primary/5",
 };
 
-const severityLabels: Record<AlertSeverity, string> = {
-  info: "Info",
-  atencao: "Atenção",
-  urgente: "Urgente",
+const typeIcons = {
+  audiencia: <CalendarDays className="h-4 w-4" />,
+  prazo: <Clock className="h-4 w-4" />,
+  tarefa: <CheckCircle2 className="h-4 w-4" />,
 };
 
-const severityBadge: Record<AlertSeverity, string> = {
-  info: "bg-info/15 text-info",
-  atencao: "bg-warning/15 text-warning",
-  urgente: "bg-destructive/10 text-destructive",
+const typeColors = {
+  audiencia: "text-primary bg-primary/10",
+  prazo: "text-warning bg-warning/15",
+  tarefa: "text-success bg-success/15",
 };
 
-type MainTab = "alertas" | "escalonamento" | "emails" | "whatsapp";
-type AlertTab = "todos" | "importantes" | "prazo" | "audiencia" | "tarefa" | "prova" | "publicacao";
+const typeLabels = {
+  audiencia: "Audiência",
+  prazo: "Prazo",
+  tarefa: "Tarefa",
+};
+
+// ── Alert Card ────────────────────────────────────────────────────────────────
+function AlertCard({ alert, onTreat }: { alert: MVPAlert; onTreat: (id: string) => void }) {
+  const caso = alert.case_id ? mockCases.find((c) => c.id === alert.case_id) : undefined;
+
+  return (
+    <div className={cn(
+      "rounded-xl border-l-4 border bg-card p-4 transition-all hover:shadow-soft",
+      alert.treated ? "opacity-50" : urgencyColors[alert.urgency]
+    )}>
+      <div className="flex items-start gap-3">
+        {/* Icon */}
+        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg mt-0.5", typeColors[alert.type])}>
+          {typeIcons[alert.type]}
+        </div>
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className={cn("text-sm font-semibold leading-tight", alert.treated && "line-through text-muted-foreground")}>
+                {alert.title}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{alert.subtitle}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <Badge className={cn(
+                "text-[10px] border-0",
+                alert.urgency === "urgente" ? "bg-destructive/10 text-destructive" :
+                alert.urgency === "atencao" ? "bg-warning/15 text-warning" :
+                "bg-primary/10 text-primary"
+              )}>
+                {daysLabel(alert.days_until)}
+              </Badge>
+              <Badge variant="outline" className="text-[9px]">{typeLabels[alert.type]}</Badge>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <Button
+              variant={alert.treated ? "ghost" : "outline"}
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => onTreat(alert.id)}
+            >
+              {alert.treated ? (
+                <><Circle className="h-3 w-3" /> Reabrir</>
+              ) : (
+                <><CheckCheck className="h-3 w-3 text-success" /> Marcar como Tratada</>
+              )}
+            </Button>
+            {caso && (
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground" asChild>
+                <Link to={`/processos/${caso.id}`}>
+                  <ExternalLink className="h-3 w-3" /> Ver Processo
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+type Tab = "todos" | "prazo" | "audiencia" | "tarefa";
 
 export default function Alertas() {
-  const [mainTab, setMainTab] = useState<MainTab>("alertas");
-  const [alertTab, setAlertTab] = useState<AlertTab>("todos");
-  const { alerts, escalations, emailLogs, whatsappLogs, untreatedCount, toggleTreated, snooze, notificationPermission, isNotificationsSupported, requestNotificationPermission } = useAlerts();
+  const { user } = useAuth();
+  const { notificationPermission, isNotificationsSupported, requestNotificationPermission } = useAlerts();
 
-  const filtered = (() => {
-    switch (alertTab) {
-      case "todos": return alerts;
-      case "importantes": return alerts.filter((a) => a.severity === "urgente" || a.severity === "atencao");
-      default: return alerts.filter((a) => a.type === alertTab);
-    }
-  })();
+  const [tab, setTab] = useState<Tab>("todos");
+  const [treatedIds, setTreatedIds] = useState<Set<string>>(new Set());
 
-  const untreatedFiltered = filtered.filter((a) => !a.treated);
-  const treatedFiltered = filtered.filter((a) => a.treated);
+  const baseAlerts = useMemo(() => buildAlerts(user?.name ?? null), [user]);
 
-  const assignOwner = (id: string) => {
-    toast({ title: "Atribuir dono", description: "Funcionalidade disponível com backend ativo." });
+  const allAlerts = useMemo(() =>
+    baseAlerts.map((a) => ({ ...a, treated: treatedIds.has(a.id) })),
+    [baseAlerts, treatedIds]
+  );
+
+  const visibleAlerts = useMemo(() => {
+    if (tab === "todos") return allAlerts;
+    return allAlerts.filter((a) => a.type === tab);
+  }, [allAlerts, tab]);
+
+  const untreated = allAlerts.filter((a) => !a.treated).length;
+
+  const counts: Record<Tab, number> = {
+    todos: allAlerts.length,
+    prazo: allAlerts.filter((a) => a.type === "prazo").length,
+    audiencia: allAlerts.filter((a) => a.type === "audiencia").length,
+    tarefa: allAlerts.filter((a) => a.type === "tarefa").length,
   };
 
-  const getCaseForAlert = (a: Alert) => a.case_number ? mockCases.find((c) => c.case_number === a.case_number) : undefined;
-
-  const alertTabCounts: Record<AlertTab, number> = {
-    todos: alerts.length,
-    importantes: alerts.filter((a) => a.severity === "urgente" || a.severity === "atencao").length,
-    prazo: alerts.filter((a) => a.type === "prazo").length,
-    audiencia: alerts.filter((a) => a.type === "audiencia").length,
-    tarefa: alerts.filter((a) => a.type === "tarefa").length,
-    prova: alerts.filter((a) => a.type === "prova").length,
-    publicacao: alerts.filter((a) => a.type === "publicacao").length,
+  const handleTreat = (id: string) => {
+    setTreatedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
+
+  const untreatedVisible = visibleAlerts.filter((a) => !a.treated);
+  const treatedVisible = visibleAlerts.filter((a) => a.treated);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Central de Alertas</h1>
-        <p className="text-sm text-muted-foreground font-medium">
-          {untreatedCount > 0 ? (
-            <span className="font-semibold text-destructive">{untreatedCount} alerta{untreatedCount !== 1 ? "s" : ""} não tratado{untreatedCount !== 1 ? "s" : ""}</span>
-          ) : (
-            <span className="text-success font-semibold">✓ Todos tratados</span>
-          )}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl flex items-center gap-2">
+            <Bell className="h-6 w-6 text-primary" /> Central de Alertas
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5 font-medium">
+            {untreated > 0 ? (
+              <span className="font-semibold text-destructive">{untreated} alerta{untreated !== 1 ? "s" : ""} não tratado{untreated !== 1 ? "s" : ""}</span>
+            ) : (
+              <span className="text-success font-semibold">✓ Todos tratados</span>
+            )}
+          </p>
+        </div>
       </div>
 
-      {/* Push notification permission banner */}
+      {/* Push notification banner */}
       {isNotificationsSupported && notificationPermission !== "granted" && (
         <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -101,340 +276,106 @@ export default function Alertas() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">Ativar notificações push</p>
             <p className="text-xs text-muted-foreground">
-              Receba alertas de prazos e audiências diretamente no seu dispositivo, mesmo com o navegador minimizado.
+              Receba alertas de prazos e audiências mesmo com o navegador minimizado.
             </p>
           </div>
-          <Button
-            size="sm"
-            className="gap-1.5 shrink-0"
-            onClick={requestNotificationPermission}
-          >
-            <BellPlus className="h-3.5 w-3.5" />
-            Ativar
+          <Button size="sm" className="gap-1.5 shrink-0" onClick={requestNotificationPermission}>
+            <BellPlus className="h-3.5 w-3.5" /> Ativar
           </Button>
         </div>
       )}
       {isNotificationsSupported && notificationPermission === "granted" && (
-        <div className="mb-4 rounded-xl border border-success/20 bg-success/5 p-3 flex items-center gap-3">
+        <div className="mb-4 rounded-xl border border-success/20 bg-success/5 p-3 flex items-center gap-2">
           <Smartphone className="h-4 w-4 text-success shrink-0" />
           <p className="text-xs text-muted-foreground">
-            <span className="font-semibold text-success">Notificações push ativas</span> — alertas de prazos e audiências serão exibidos no seu dispositivo.
+            <span className="font-semibold text-success">Notificações push ativas</span> — alertas aparecem no seu dispositivo.
           </p>
         </div>
       )}
 
-      {/* Main Tabs: Alertas / Escalonamento / E-mails */}
-      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)}>
-        <div className="mb-4">
-          <TabsList>
-            <TabsTrigger value="alertas" className="gap-1.5 text-xs">
-              <Bell className="h-3.5 w-3.5" /> Alertas
-              {untreatedCount > 0 && (
-                <Badge className="ml-1 h-4 min-w-4 rounded-full bg-destructive px-1 text-[9px] text-destructive-foreground">{untreatedCount}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="escalonamento" className="gap-1.5 text-xs">
-              <TrendingUp className="h-3.5 w-3.5" /> Escalonamento
-              {escalations.length > 0 && (
-                <Badge className="ml-1 h-4 min-w-4 rounded-full bg-warning px-1 text-[9px] text-warning-foreground">{escalations.length}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="emails" className="gap-1.5 text-xs">
-              <Mail className="h-3.5 w-3.5" /> E-mails ({emailLogs.length})
-            </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-1.5 text-xs">
-              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp ({whatsappLogs.length})
-            </TabsTrigger>
+      {/* Regras de alerta info */}
+      <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-3">
+        <div className="flex items-center gap-2 text-xs mb-1">
+          <AlarmClock className="h-4 w-4 text-primary" />
+          <span className="font-semibold text-primary">Regras de alertas ativas (MVP 1.0)</span>
+        </div>
+        <div className="grid gap-1 sm:grid-cols-3 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <CalendarDays className="h-3 w-3 text-primary" />
+            <span><strong>Audiências:</strong> 30, 7 e 1 dia antes</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3 w-3 text-warning" />
+            <span><strong>Prazos:</strong> 30, 7 e 1 dia antes</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="h-3 w-3 text-success" />
+            <span><strong>Tarefas:</strong> 1 dia antes e no vencimento</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+        <div className="mb-4 overflow-x-auto scrollbar-hide">
+          <TabsList className="w-max">
+            {([
+              { value: "todos", label: "Todos" },
+              { value: "prazo", label: "Prazos" },
+              { value: "audiencia", label: "Audiências" },
+              { value: "tarefa", label: "Minhas Tarefas" },
+            ] as { value: Tab; label: string }[]).map(({ value, label }) => (
+              <TabsTrigger key={value} value={value} className="gap-1.5 text-xs">
+                {label}
+                {counts[value] > 0 && (
+                  <span className="ml-0.5 text-[9px] text-muted-foreground">({counts[value]})</span>
+                )}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
-        {/* ALERTAS TAB */}
-        <TabsContent value="alertas">
-          {/* Sub-tabs */}
-          <Tabs value={alertTab} onValueChange={(v) => setAlertTab(v as AlertTab)}>
-            <div className="mb-4 overflow-x-auto scrollbar-hide">
-              <TabsList className="w-max">
-                {(["todos","importantes","prazo","audiencia","tarefa","prova","publicacao"] as AlertTab[]).map((t) => (
-                  <TabsTrigger key={t} value={t} className="gap-1 text-xs">
-                    {t === "todos" ? "Todos" :
-                     t === "importantes" ? "Importantes" :
-                     t === "prazo" ? "Prazos" :
-                     t === "audiencia" ? "Audiências" :
-                     t === "tarefa" ? "Tarefas" :
-                     t === "prova" ? "Provas/SLA" : "Publicações"}
-                    {alertTabCounts[t] > 0 && (
-                      <span className="ml-0.5 text-[9px] text-muted-foreground">({alertTabCounts[t]})</span>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </Tabs>
-
-          {/* Auto-alert info card */}
-          <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <div className="flex items-center gap-2 text-xs">
-              <AlarmClock className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-primary">Alertas automáticos ativos</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Audiências e prazos geram alertas em <strong>7 dias</strong>, <strong>2 dias</strong> e <strong>2 horas</strong> antes do evento.
-              Alertas urgentes não tratados são escalonados automaticamente para gestores.
-            </p>
-          </div>
-
-          {/* Untreated */}
-          {untreatedFiltered.length > 0 && (
-            <div className="mb-6">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Não Tratados</h2>
-              <div className="space-y-2">
-                {untreatedFiltered.map((a) => (
-                  <AlertCard key={a.id} alert={a} caso={getCaseForAlert(a)} onToggle={toggleTreated} onSnooze={snooze} onAssign={assignOwner} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Treated */}
-          {treatedFiltered.length > 0 && (
-            <div>
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tratados</h2>
-              <div className="space-y-2">
-                {treatedFiltered.map((a) => (
-                  <AlertCard key={a.id} alert={a} caso={getCaseForAlert(a)} onToggle={toggleTreated} onSnooze={snooze} onAssign={assignOwner} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {filtered.length === 0 && (
+        {/* Content */}
+        <TabsContent value={tab} forceMount className="mt-0">
+          {visibleAlerts.length === 0 ? (
             <div className="rounded-xl border border-dashed p-12 text-center">
               <BellOff className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhum alerta encontrado.</p>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* ESCALONAMENTO TAB */}
-        <TabsContent value="escalonamento">
-          <div className="mb-4 rounded-lg border border-warning/20 bg-warning/5 p-3">
-            <div className="flex items-center gap-2 text-xs">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <span className="font-semibold text-warning">Regra de Escalonamento</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Alertas <strong>urgentes</strong> não tratados após <strong>4 horas</strong> são escalonados automaticamente para o gestor responsável.
-              Um segundo escalonamento ocorre após <strong>24 horas</strong> para a diretoria.
-            </p>
-          </div>
-
-          {escalations.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-12 text-center">
-              <TrendingUp className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhum escalonamento registrado.</p>
-              <p className="text-xs text-muted-foreground mt-1">Aguarde... escalonamentos são simulados automaticamente.</p>
+              <p className="text-sm font-medium text-muted-foreground">Nenhum alerta nos próximos 30 dias</p>
+              <p className="text-xs text-muted-foreground mt-1">Audiências, prazos e tarefas próximos aparecerão aqui.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {escalations.map((esc) => (
-                <div key={esc.id} className="rounded-xl border-l-4 border-l-warning bg-warning/5 p-4">
-                  <div className="flex items-start gap-3">
-                    <ArrowUpRight className="mt-0.5 h-4 w-4 text-warning shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{esc.alert_title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Escalonado para: <span className="font-medium text-foreground">{esc.escalated_to}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">{esc.reason}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {new Date(esc.created_at).toLocaleString("pt-BR")}
-                      </p>
-                    </div>
+            <>
+              {/* Não tratados */}
+              {untreatedVisible.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Não Tratados · {untreatedVisible.length}
+                  </h2>
+                  <div className="space-y-2.5">
+                    {untreatedVisible.map((a) => (
+                      <AlertCard key={a.id} alert={a} onTreat={handleTreat} />
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+              )}
 
-        {/* EMAILS TAB */}
-        <TabsContent value="emails">
-          <div className="mb-4 rounded-lg border border-info/20 bg-info/5 p-3">
-            <div className="flex items-center gap-2 text-xs">
-              <Mail className="h-4 w-4 text-info" />
-              <span className="font-semibold text-info">Notificações por E-mail</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Cada alerta gerado envia automaticamente um e-mail para os responsáveis configurados.
-              E-mails de escalonamento são enviados separadamente para gestores.
-            </p>
-          </div>
-
-          {emailLogs.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-12 text-center">
-              <Mail className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhum e-mail enviado ainda.</p>
-              <p className="text-xs text-muted-foreground mt-1">Aguarde... e-mails são simulados automaticamente.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {emailLogs.map((log) => (
-                <div key={log.id} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-start gap-3">
-                    <Mail className={cn("mt-0.5 h-4 w-4 shrink-0", log.status === "enviado" ? "text-success" : "text-destructive")} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{log.subject}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Para: <span className="font-medium">{log.to}</span>
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge className={cn("text-[9px] border-0",
-                          log.status === "enviado" ? "bg-success/15 text-success" : "bg-destructive/10 text-destructive"
-                        )}>
-                          {log.status === "enviado" ? "✓ Enviado" : "✗ Falha"}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(log.sent_at).toLocaleString("pt-BR")}
-                        </span>
-                      </div>
-                    </div>
+              {/* Tratados */}
+              {treatedVisible.length > 0 && (
+                <div>
+                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Tratados · {treatedVisible.length}
+                  </h2>
+                  <div className="space-y-2">
+                    {treatedVisible.map((a) => (
+                      <AlertCard key={a.id} alert={a} onTreat={handleTreat} />
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* WHATSAPP TAB */}
-        <TabsContent value="whatsapp">
-          <div className="mb-4 rounded-lg border border-success/20 bg-success/5 p-3">
-            <div className="flex items-center gap-2 text-xs">
-              <MessageCircle className="h-4 w-4 text-success" />
-              <span className="font-semibold text-success">Notificações via WhatsApp</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Alertas urgentes e de audiência são enviados automaticamente via WhatsApp para os responsáveis configurados.
-              Canais configurados na tela <strong>Regras de Alertas</strong>.
-            </p>
-          </div>
-
-          {whatsappLogs.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-12 text-center">
-              <MessageCircle className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhuma mensagem WhatsApp enviada ainda.</p>
-              <p className="text-xs text-muted-foreground mt-1">Aguarde... mensagens são simuladas automaticamente.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {whatsappLogs.map((log) => (
-                <div key={log.id} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-start gap-3">
-                    <MessageCircle className={cn("mt-0.5 h-4 w-4 shrink-0", log.status === "enviado" ? "text-success" : "text-destructive")} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{log.to_name}</p>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                          <Phone className="h-2.5 w-2.5" /> {log.to_phone}
-                        </span>
-                      </div>
-                      <pre className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed bg-muted/30 rounded-lg p-2">
-                        {log.message}
-                      </pre>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge className={cn("text-[9px] border-0",
-                          log.status === "enviado" ? "bg-success/15 text-success" : "bg-destructive/10 text-destructive"
-                        )}>
-                          {log.status === "enviado" ? "✓ Enviado" : "✗ Falha"}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(log.sent_at).toLocaleString("pt-BR")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function AlertCard({ alert: a, caso, onToggle, onSnooze, onAssign }: {
-  alert: Alert;
-  caso?: { id: string } | undefined;
-  onToggle: (id: string) => void;
-  onSnooze: (id: string, d: string) => void;
-  onAssign: (id: string) => void;
-}) {
-  return (
-    <div className={cn(
-      "group rounded-xl border-l-4 p-3 shadow-soft transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 sm:p-4",
-      severityStyles[a.severity],
-      a.treated && "opacity-50"
-    )} role="article" aria-label={`Alerta: ${a.title}`}>
-      <div className="flex items-start gap-3">
-        <div className={cn("mt-0.5 shrink-0",
-          a.severity === "urgente" ? "text-destructive" :
-          a.severity === "atencao" ? "text-warning" : "text-info"
-        )}>
-          {typeIcons[a.type]}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-sm font-semibold">{a.title}</p>
-            <Badge className={cn("border-0 text-[10px]", severityBadge[a.severity])}>
-              {severityLabels[a.severity]}
-            </Badge>
-            {a.treated ? (
-              <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Tratada</Badge>
-            ) : (
-              <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">Não tratada</Badge>
-            )}
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{a.description}</p>
-          {a.case_number && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              📋 {a.case_number} · {a.employee}
-            </p>
-          )}
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            🕐 {new Date(a.event_date).toLocaleString("pt-BR")}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1">
-          {caso && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-              <Link to={`/processos/${caso.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => onToggle(a.id)}>
-            {a.treated ? "Reabrir" : "Tratar"}
-          </Button>
-          {!a.treated && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onSnooze(a.id, "1 hora")}>
-                  <AlarmClock className="mr-2 h-3.5 w-3.5" /> Adiar 1h
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSnooze(a.id, "1 dia")}>
-                  <AlarmClock className="mr-2 h-3.5 w-3.5" /> Adiar 1 dia
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAssign(a.id)}>
-                  <UserPlus className="mr-2 h-3.5 w-3.5" /> Atribuir dono
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

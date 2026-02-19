@@ -17,7 +17,9 @@ import {
 import {
   mockHearings, mockDeadlines, mockTasks, mockCases, mockCompanies,
 } from "@/data/mock";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+
 
 
 // ── Constants ──
@@ -453,14 +455,36 @@ function DayView({ selectedDate, typeFilter, assignmentFilter, companyFilter, on
 
 // ═══════════════════════════ MAIN ═══════════════════════════
 export default function Agenda() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "responsavel_juridico_interno";
+
   const [selectedDate, setSelectedDate] = useState(new Date(2026,1,16));
   const [view, setView] = useState<ViewType>("mes");
   const [typeFilter, setTypeFilter] = useState<EventFilterType>("todos");
-  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("todos");
+  // MVP: não-admin começa em "Minhas atribuições"
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>(isAdmin ? "todos" : "minhas");
   const [companyFilter, setCompanyFilter] = useState("todas");
   const [showFilters, setShowFilters] = useState(false);
   const [showSidePanel, setShowSidePanel] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+  // Year selector
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    mockHearings.forEach((h) => years.add(new Date(h.date).getFullYear()));
+    mockDeadlines.forEach((d) => years.add(new Date(d.due_at).getFullYear()));
+    mockTasks.forEach((t) => years.add(new Date(t.due_at).getFullYear()));
+    [2025, 2026, 2027].forEach((y) => years.add(y));
+    return [...years].sort();
+  }, []);
+
+  const handleYearChange = (year: string) => {
+    const y = parseInt(year);
+    const d = new Date(selectedDate);
+    d.setFullYear(y);
+    setSelectedDate(d);
+  };
+
 
   const prev = () => {
     const d = new Date(selectedDate);
@@ -539,10 +563,44 @@ export default function Agenda() {
           <div>
             <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Agenda</h1>
             <p className="text-sm text-muted-foreground font-medium">
-              Gerencie audiências, prazos e tarefas
+              Audiências, prazos e tarefas
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Assignment filter – always visible */}
+            <div className="flex rounded-lg border bg-muted/40 p-0.5 gap-0.5">
+              <button
+                onClick={() => setAssignmentFilter("minhas")}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
+                  assignmentFilter === "minhas" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Minhas atribuições
+              </button>
+              <button
+                onClick={() => setAssignmentFilter("todos")}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all",
+                  assignmentFilter === "todos" ? "bg-background shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todas
+              </button>
+            </div>
+
+            {/* Year selector */}
+            <Select value={String(selectedDate.getFullYear())} onValueChange={handleYearChange}>
+              <SelectTrigger className="h-9 w-[88px] text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button
               variant={showFilters ? "secondary" : "outline"}
               size="sm"
@@ -559,20 +617,7 @@ export default function Agenda() {
             </Button>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-lg" onClick={handleExportICS}>
-                  <Download className="h-3.5 w-3.5" /> ICS
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p className="text-xs">Exportar eventos do dia</p></TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg hidden lg:flex"
-                  onClick={() => setShowSidePanel(!showSidePanel)}
-                >
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg hidden lg:flex" onClick={() => setShowSidePanel(!showSidePanel)}>
                   {showSidePanel ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
@@ -587,6 +632,7 @@ export default function Agenda() {
             </Tabs>
           </div>
         </div>
+
 
         {/* Stat counters */}
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">

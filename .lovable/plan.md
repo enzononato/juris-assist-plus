@@ -1,58 +1,54 @@
 
+# MVP 1.0 – "Agenda + Tarefas + Alertas"
 
-# Agenda estilo Google Calendar - Visoes Mes, Semana e Dia
+## Status: EM PROGRESSO
 
-## Problema atual
-As abas Mes/Semana/Dia nao fazem nada - so existe a visao de mes. Falta a grade de horarios estilo Google Calendar.
+## ✅ Fase 1 – Fluxo Básico (CONCLUÍDA)
 
-## O que sera feito
+### Botão "Criar" Global
+- Dropdown no sidebar com "Criar Processo" e "Criar Tarefa"
 
-Reescrever completamente o componente `src/pages/Agenda.tsx` com 3 visoes funcionais:
+### Formulário de Processo (NovoProcesso.tsx)
+- Campos: Nº do Processo, Nome do Colaborador, Empresa/Filial, Tema (texto livre), Status (Em andamento | Encerrado), Responsável (executor), Gestor responsável
 
-### 1. Visao Mes (ja existe, sera mantida)
-- Grade de 7 colunas com dias do mes
-- Eventos resumidos em cada celula
-- Clicar em um dia muda para visao Dia daquele dia
+### Formulário de Tarefa (NovaTarefa.tsx)
+- Busca de processo/caso com popover
+- Seleção múltipla de responsáveis com chips
+- Campo gestor responsável separado
+- Data com calendar picker
+- Opções: Mostrar na agenda / Dia inteiro
+- Notificação in-app simulada ao criar
 
-### 2. Visao Semana (novo)
-- Grade com 7 colunas (Dom-Sab) e linhas de horario (06:00 ate 22:00)
-- Cada hora ocupa uma linha na grade
-- Audiencias e tarefas com horario aparecem posicionadas na faixa horaria correta (ex: audiencia as 10:00 aparece na linha das 10h)
-- Prazos (sem horario) aparecem como barra no topo do dia ("all-day" area)
-- Navegacao prev/next avanca/retrocede 1 semana
-- Cabecalho mostra "16-22 Fev 2026"
+### Lista de Processos
+- Processos encerrados ocultos por padrão (botão "Mostrar encerrados")
+- Default tab: "Em andamento"
 
-### 3. Visao Dia (novo)
-- Coluna unica com linhas de horario (06:00 ate 22:00)
-- Eventos posicionados na faixa horaria correta com altura proporcional (1h padrao)
-- Area "dia inteiro" no topo para prazos
-- Navegacao prev/next avanca/retrocede 1 dia
-- Cabecalho mostra "Segunda, 16 de Fevereiro 2026"
+## ✅ Fase 2 – Agenda + Alertas (CONCLUÍDA)
 
-### Navegacao entre visoes
-- Estado `selectedDate` (Date) controla o dia/semana/mes visivel
-- Ao trocar de aba, a data selecionada se mantem
-- Botoes prev/next movem por 1 mes, 1 semana ou 1 dia conforme a visao ativa
-- Clicar em um dia na visao Mes muda para visao Dia
+### Agenda (Agenda.tsx)
+- Toggle "Minhas atribuições / Todas" sempre visível no header
+- Selector de ano (dropdown) no header
+- Não-admin começa em "Minhas atribuições"
+- Views: Mês, Semana, Dia
+- Modal de evento ao clicar com link para processo
 
-### Eventos na grade horaria
-- Audiencias: cor primaria (azul/indigo), mostram horario + tipo + nome do funcionario
-- Tarefas: cor verde, mostram horario + titulo
-- Prazos: cor amarela/warning, aparecem na area "all-day"
+### Central de Alertas (Alertas.tsx)
+- Abas: Todos / Prazos / Audiências / Minhas Tarefas
+- Regras MVP: Audiências 30/7/1 dia, Prazos 30/7/1 dia, Tarefas 1 dia antes e no vencimento
+- Status: Não tratada / Tratada (state local)
+- Link para processo relacionado
 
-## Detalhes Tecnicos
+## 🔲 Fase 3 – Gestor, Encerrados e Permissões
 
-### Arquivo modificado
-- `src/pages/Agenda.tsx` - reescrita completa com 3 sub-componentes internos:
-  - `MonthView` - grade mensal (refatoracao do existente, adicionando clique no dia)
-  - `WeekView` - grade semanal com faixas de horario
-  - `DayView` - grade diaria com faixas de horario
+- Campo "Gestor responsável" já implementado em Processos e Tarefas (formulários)
+- Notificação in-app para gestor ao criar tarefa: TODO (precisa de backend real)
+- Processos encerrados: filtro "Mostrar encerrados" implementado
+- Modo leitura para encerrados: TODO
+- Teste "caso David": permissões mockadas na agenda via assignmentFilter
 
-### Helpers
-- `getWeekDays(date)` - retorna array de 7 datas da semana
-- `getEventsForDate(date)` - retorna eventos (audiencias + tarefas + prazos) para uma data
-- `HOURS` - array de 06 a 22 para renderizar as linhas de horario
+## Próximas prioridades
 
-### Sem dependencias novas
-- Tudo construido com CSS Grid/Flexbox e Tailwind, sem bibliotecas externas de calendario
-
+1. Ativar Lovable Cloud para persistência real
+2. Notificações in-app reais para responsável e gestor
+3. Modo leitura para processo encerrado (bloquear criação de tarefas)
+4. Edge Function de alertas automáticos
