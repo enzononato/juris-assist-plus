@@ -92,8 +92,20 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultAlerts: AlertsContextType = {
+  alerts: [],
+  escalations: [],
+  emailLogs: [],
+  whatsappLogs: [],
+  untreatedCount: 0,
+  toggleTreated: () => {},
+  snooze: () => {},
+  notificationPermission: "default",
+  isNotificationsSupported: false,
+  requestNotificationPermission: async () => {},
+};
+
 export function useAlerts() {
   const ctx = useContext(AlertsContext);
-  if (!ctx) throw new Error("useAlerts must be used within AlertsProvider");
-  return ctx;
+  return ctx ?? defaultAlerts;
 }
