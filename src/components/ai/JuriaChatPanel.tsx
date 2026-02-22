@@ -3,6 +3,7 @@ import { Send, Bot, User, Sparkles, Copy, Check, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { toast } from "@/hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,178 +20,101 @@ const SUGGESTIONS = [
   { icon: "📊", text: "Me dê uma visão geral do escritório" },
 ];
 
-function getMockResponse(input: string): string {
-  const lower = input.toLowerCase();
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/juria-chat`;
 
-  if (lower.includes("audiência") || lower.includes("audiencia")) {
-    return `## 📅 Próximas Audiências
+async function streamChat({
+  messages,
+  onDelta,
+  onDone,
+  onError,
+}: {
+  messages: { role: string; content: string }[];
+  onDelta: (text: string) => void;
+  onDone: () => void;
+  onError: (msg: string) => void;
+}) {
+  const resp = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
 
-| # | Tipo | Reclamante | Data | Local |
-|---|------|-----------|------|-------|
-| 1 | Audiência Inicial | Maria Fernanda Oliveira | 25/02/2026 às 10:00 | 2ª Vara do Trabalho – RJ |
-| 2 | Audiência de Instrução | Carlos Alberto Silva | 10/03/2026 às 14:00 | 1ª Vara do Trabalho – SP |
-| 3 | Audiência de Julgamento | Ricardo Souza | 15/04/2026 às 09:30 | 1ª Vara – Paulo Afonso |
-
-> ⚠️ A audiência de **Maria Fernanda** tem **2 itens pendentes** no checklist pré-audiência. Recomendo revisar antes.
-
-Deseja que eu prepare um resumo completo de algum desses processos?`;
+  if (!resp.ok) {
+    let errorMsg = "Erro ao conectar com a Juria";
+    try {
+      const data = await resp.json();
+      if (data.error) errorMsg = data.error;
+    } catch {}
+    onError(errorMsg);
+    return;
   }
 
-  if (lower.includes("prazo") || lower.includes("urgente") || lower.includes("venc")) {
-    return `## ⏰ Prazos Mais Urgentes
-
-### 🔴 Crítico
-- **Juntada de documentos** — vence em **20/02/2026**
-  - Processo: Maria Fernanda Oliveira
-  - Status: \`Pendente\`
-
-### 🟡 Atenção
-- **Entrega de docs ao perito** — vence em **22/02/2026**
-  - Processo: Carlos Alberto Silva — ✅ Cumprido
-- **Manifestação sobre laudo pericial** — vence em **28/02/2026**
-  - Processo: Carlos Alberto Silva
-
-### 🟢 Confortável
-- **Resposta à notificação** — vence em **05/03/2026**
-  - Processo: Pedro Henrique Costa *(⚠️ Sigiloso)*
-
-> 💡 **Dica:** O prazo de juntada vence em **3 dias**. Sugiro priorizar.`;
+  if (!resp.body) {
+    onError("Sem resposta da IA");
+    return;
   }
 
-  if (lower.includes("carlos") || lower.includes("0001234")) {
-    return `## 📋 Processo: Carlos Alberto Silva
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let textBuffer = "";
+  let streamDone = false;
 
-| Campo | Detalhe |
-|-------|---------|
-| Nº | \`0001234-56.2024.5.01.0001\` |
-| Tema | Horas Extras |
-| Status | 🟢 Em Andamento |
-| Empresa | Revalle Juazeiro |
-| Tribunal | 1ª Vara do Trabalho de Juazeiro |
-| Responsável | Thiago |
-| Advogada | Sullydaiane |
+  while (!streamDone) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    textBuffer += decoder.decode(value, { stream: true });
 
-### Próximos Eventos
-- 📅 **Audiência de Instrução** em 10/03/2026
-- ⏰ **Manifestação sobre laudo** até 28/02/2026
+    let newlineIndex: number;
+    while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+      let line = textBuffer.slice(0, newlineIndex);
+      textBuffer = textBuffer.slice(newlineIndex + 1);
 
-### Status das Provas
-- **3** evidências anexadas
-- Checklist de provas: **33%** concluído
-- **1** tarefa pendente: *Reunir espelhos de ponto*
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (line.startsWith(":") || line.trim() === "") continue;
+      if (!line.startsWith("data: ")) continue;
 
-> 📌 Recomendo completar as provas antes da audiência de instrução.`;
-  }
-
-  if (lower.includes("tarefa") || lower.includes("pendente")) {
-    return `## 📝 Tarefas Pendentes (7 de 10)
-
-### 🔴 Prioridade Crítica
-1. **Confirmar presença das testemunhas** — 23/02
-2. **Preparar contestação para audiência** — 24/02
-3. **Preparar recurso ordinário** — 10/03
-
-### 🟠 Prioridade Alta
-4. **Reunir espelhos de ponto** — 20/02
-5. **Solicitar registros de catraca** — 22/02
-6. **Revisar cálculos de verbas rescisórias** — 01/03
-7. **Coletar depoimento de testemunha** — 28/02
-
----
-
-**Resumo:** 3 críticas, 4 altas. A mais urgente vence em **3 dias**.
-
-Deseja que eu detalhe alguma tarefa específica?`;
-  }
-
-  if (lower.includes("sigiloso") || lower.includes("sigilo") || lower.includes("restrito")) {
-    return `## 🔒 Processos Sigilosos
-
-Existe **1 processo** com nível **Ultra Restrito**:
-
-| Campo | Detalhe |
-|-------|---------|
-| Reclamante | Pedro Henrique Costa |
-| Tema | Assédio Moral |
-| Nº | \`0009876-12.2024.5.03.0003\` |
-| Empresa | Revalle Petrolina |
-| Status | 🆕 Novo |
-
-> ⚠️ Este processo só deve ser acessível por usuários autorizados. Quando o backend estiver ativo, a visibilidade será controlada por RLS + ACL.`;
-  }
-
-  if (lower.includes("visão geral") || lower.includes("escritório") || lower.includes("dashboard") || lower.includes("resumo geral")) {
-    return `## 📊 Visão Geral do Escritório
-
-| Métrica | Valor |
-|---------|-------|
-| Processos ativos | **4** |
-| Audiências próximas | **3** |
-| Prazos pendentes | **4** |
-| Tarefas pendentes | **7** |
-| Evidências totais | **5** |
-
-### Distribuição por Status
-- 🆕 Novos: **1** (Pedro Henrique)
-- 🟢 Em Andamento: **2** (Carlos Alberto, Ricardo)
-- 🟡 Aguardando Documentos: **1** (Maria Fernanda)
-
-### ⚡ Ações Recomendadas
-1. Resolver juntada de documentos (vence em 3 dias)
-2. Completar checklist pré-audiência de Maria Fernanda
-3. Reunir provas pendentes do processo Carlos Alberto
-
-Posso detalhar qualquer item acima!`;
-  }
-
-  if (lower.includes("obrigad") || lower.includes("valeu") || lower.includes("thanks")) {
-    return "De nada! 😊 Estou aqui sempre que precisar. Posso ajudar com mais alguma coisa?";
-  }
-
-  return `Entendi sua pergunta! No momento estou em **modo demonstração** com dados mock.
-
-Posso ajudar com:
-- 📅 **Audiências** próximas
-- ⏰ **Prazos** urgentes
-- 📋 **Resumo** de processos
-- 📝 **Tarefas** pendentes
-- 🔒 Processos **sigilosos**
-- 📊 **Visão geral** do escritório
-
-> 💡 Quando o Lovable Cloud for ativado, terei acesso ao banco de dados em tempo real.
-
-O que gostaria de saber?`;
-}
-
-// Simulate typing with progressive reveal
-function useTypingEffect(text: string, speed = 12) {
-  const [displayed, setDisplayed] = useState("");
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    setDisplayed("");
-    setDone(false);
-    let i = 0;
-    const interval = setInterval(() => {
-      i += 2; // 2 chars at a time for speed
-      if (i >= text.length) {
-        setDisplayed(text);
-        setDone(true);
-        clearInterval(interval);
-      } else {
-        setDisplayed(text.slice(0, i));
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === "[DONE]") {
+        streamDone = true;
+        break;
       }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [text, speed]);
 
-  return { displayed, done };
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch {
+        textBuffer = line + "\n" + textBuffer;
+        break;
+      }
+    }
+  }
+
+  // Flush remaining
+  if (textBuffer.trim()) {
+    for (let raw of textBuffer.split("\n")) {
+      if (!raw) continue;
+      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      if (raw.startsWith(":") || raw.trim() === "") continue;
+      if (!raw.startsWith("data: ")) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch {}
+    }
+  }
+
+  onDone();
 }
 
-function AssistantMessage({ content, isLatest }: { content: string; isLatest: boolean }) {
-  const { displayed, done } = useTypingEffect(content, isLatest ? 8 : 0);
+function AssistantMessage({ content, isStreaming }: { content: string; isStreaming: boolean }) {
   const [copied, setCopied] = useState(false);
-  const text = isLatest && !done ? displayed : content;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -219,21 +143,23 @@ function AssistantMessage({ content, isLatest }: { content: string; isLatest: bo
             prose-li:my-0.5 prose-ul:my-1 prose-ol:my-1
             prose-hr:border-border/50 prose-hr:my-2
           ">
-            <ReactMarkdown>{text}</ReactMarkdown>
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
-          {isLatest && !done && (
+          {isStreaming && (
             <span className="inline-block h-4 w-0.5 bg-primary animate-pulse ml-0.5" />
           )}
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
-          >
-            {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
-            {copied ? "Copiado" : "Copiar"}
-          </button>
-        </div>
+        {!isStreaming && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
+            >
+              {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+              {copied ? "Copiado" : "Copiar"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -246,26 +172,44 @@ interface Props {
 export default function JuriaChatPanel({ onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isStreaming]);
 
   const sendMessage = useCallback((text: string) => {
-    if (!text.trim() || isTyping) return;
+    if (!text.trim() || isStreaming) return;
     const userMsg: Message = { role: "user", content: text.trim(), timestamp: new Date() };
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
-    setIsTyping(true);
+    setIsStreaming(true);
 
-    setTimeout(() => {
-      const response = getMockResponse(text);
-      setMessages((prev) => [...prev, { role: "assistant", content: response, timestamp: new Date() }]);
-      setIsTyping(false);
-    }, 600 + Math.random() * 400);
-  }, [isTyping]);
+    let assistantSoFar = "";
+
+    const upsertAssistant = (chunk: string) => {
+      assistantSoFar += chunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar, timestamp: new Date() }];
+      });
+    };
+
+    streamChat({
+      messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+      onDelta: (chunk) => upsertAssistant(chunk),
+      onDone: () => setIsStreaming(false),
+      onError: (msg) => {
+        toast({ title: "Erro na Juria", description: msg, variant: "destructive" });
+        setIsStreaming(false);
+      },
+    });
+  }, [isStreaming, messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,7 +232,7 @@ export default function JuriaChatPanel({ onClose }: Props) {
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold">Juria</h3>
-          <p className="text-[10px] text-muted-foreground">Assistente jurídica • Online</p>
+          <p className="text-[10px] text-muted-foreground">Assistente jurídica • IA ativa</p>
         </div>
         <div className="flex items-center gap-1.5">
           {messages.length > 0 && (
@@ -296,9 +240,9 @@ export default function JuriaChatPanel({ onClose }: Props) {
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
           )}
-          <div className="flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5">
-            <Sparkles className="h-3 w-3 text-warning" />
-            <span className="text-[10px] font-semibold text-warning">Demo</span>
+          <div className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5">
+            <Sparkles className="h-3 w-3 text-success" />
+            <span className="text-[10px] font-semibold text-success">IA</span>
           </div>
         </div>
       </div>
@@ -311,14 +255,14 @@ export default function JuriaChatPanel({ onClose }: Props) {
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
                 <Bot className="h-8 w-8 text-primary" />
               </div>
-              <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-warning/10">
-                <Sparkles className="h-3.5 w-3.5 text-warning" />
+              <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-success/10">
+                <Sparkles className="h-3.5 w-3.5 text-success" />
               </div>
             </div>
             <div>
               <p className="text-sm font-bold">Olá! Sou a Juria 👋</p>
               <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed max-w-[280px]">
-                Sua assistente jurídica inteligente. Pergunte sobre processos, prazos, audiências e tarefas.
+                Sua assistente jurídica com inteligência artificial. Pergunte sobre processos, prazos, audiências e tarefas.
               </p>
             </div>
             <div className="grid w-full grid-cols-2 gap-2">
@@ -350,12 +294,12 @@ export default function JuriaChatPanel({ onClose }: Props) {
             <AssistantMessage
               key={i}
               content={msg.content}
-              isLatest={i === messages.length - 1}
+              isStreaming={isStreaming && i === messages.length - 1}
             />
           )
         )}
 
-        {isTyping && (
+        {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="flex items-center gap-2.5 animate-in fade-in duration-200">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
               <Bot className="h-4 w-4 text-primary" />
@@ -372,7 +316,7 @@ export default function JuriaChatPanel({ onClose }: Props) {
       </div>
 
       {/* Quick suggestions after conversation */}
-      {messages.length > 0 && !isTyping && (
+      {messages.length > 0 && !isStreaming && (
         <div className="flex gap-1.5 overflow-x-auto px-4 py-1.5 border-t bg-muted/30 scrollbar-hide">
           {SUGGESTIONS.slice(0, 4).map((s) => (
             <button
@@ -393,13 +337,13 @@ export default function JuriaChatPanel({ onClose }: Props) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Pergunte à Juria..."
           className="flex-1 rounded-xl border-0 bg-muted px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 transition-shadow"
-          disabled={isTyping}
+          disabled={isStreaming}
         />
         <Button
           type="submit"
           size="icon"
           className="h-10 w-10 shrink-0 rounded-xl shadow-sm"
-          disabled={!input.trim() || isTyping}
+          disabled={!input.trim() || isStreaming}
         >
           <Send className="h-4 w-4" />
         </Button>
