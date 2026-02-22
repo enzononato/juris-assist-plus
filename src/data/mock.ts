@@ -95,7 +95,8 @@ export interface Alert {
 export type TimelineEventType = 
   | 'processo_criado' | 'status_alterado' | 'prazo_criado' | 'prazo_cumprido'
   | 'audiencia_agendada' | 'audiencia_realizada' | 'prova_anexada' | 'tarefa_criada'
-  | 'tarefa_concluida' | 'comentario' | 'checklist_aplicado' | 'responsavel_alterado';
+  | 'tarefa_concluida' | 'comentario' | 'checklist_aplicado' | 'responsavel_alterado'
+  | 'campo_editado';
 
 export interface TimelineEvent {
   id: string;

@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ArrowLeft, Shield, Edit, Trash2, Plus, X, Lock, RotateCcw, RefreshCw } from "lucide-react";
+import EditarProcessoDialog from "@/components/processo/EditarProcessoDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,6 +53,8 @@ export default function ProcessoDetalhe() {
 
   const [editStatus, setEditStatus] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<CaseStatus>(caso?.status ?? "novo");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [, forceUpdate] = useState(0);
   const isEncerrado = currentStatus === "encerrado";
 
   // Reabertura
@@ -137,10 +140,8 @@ export default function ProcessoDetalhe() {
             <Link to="/processos"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
           </Button>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <Link to={`/processos/editar/${id}`} onClick={(e) => { e.preventDefault(); toast({ title: "Editar processo", description: "Formulário de edição em breve." }); }}>
-                <Edit className="h-3.5 w-3.5" />
-              </Link>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditDialogOpen(true)}>
+              <Edit className="h-3.5 w-3.5" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -449,6 +450,13 @@ export default function ProcessoDetalhe() {
           <ChecklistsTab checklists={checklists} />
         </TabsContent>
       </Tabs>
+
+      <EditarProcessoDialog
+        caso={caso}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onUpdated={() => forceUpdate((n) => n + 1)}
+      />
     </div>
   );
 }
