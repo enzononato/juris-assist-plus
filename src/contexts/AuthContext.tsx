@@ -47,14 +47,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<MockUser | null>(() => {
+    try {
+      const saved = localStorage.getItem("siag_user_id");
+      if (saved) {
+        const found = mockUsers.find((u) => u.id === saved);
+        if (found) return found;
+      }
+    } catch {}
+    return null;
+  });
 
   const login = useCallback((userId: string) => {
     const found = mockUsers.find((u) => u.id === userId);
-    if (found) setUser(found);
+    if (found) {
+      setUser(found);
+      localStorage.setItem("siag_user_id", found.id);
+    }
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem("siag_user_id");
+  }, []);
 
   const canAccessCompany = useCallback(
     (companyId: string) => {
