@@ -1,45 +1,39 @@
 
-## Limpar Contadores da Agenda
 
-### Problema
+## Problema
 
-A Agenda continua mostrando 8 eventos (1 audiencia, 3 prazos, 4 tarefas) porque a funcao `getEventsForDate` em `src/pages/Agenda.tsx` nao filtra por status. Tarefas com status `concluida` e prazos com status `cumprido` ainda aparecem no calendario.
+Quando um novo processo e criado, o codigo faz `mockCases.push(newCase)` e `bumpMockRevision()`, mas **nenhum estado React muda**. Isso significa que os componentes que listam processos (Dashboard, pagina de Processos) nao re-renderizam e o novo processo "some".
 
-### Solucao
+O `bumpMockRevision()` incrementa um contador global, porem nenhum componente React esta observando esse contador para disparar uma atualizacao.
 
-Adicionar filtros de status na funcao `getEventsForDate` para excluir:
-- **Tarefas** com status `concluida`
-- **Prazos** com status `cumprido`
-- **Audiencias** de processos com status `encerrado`
+## Solucao
 
-### Alteracao
+Criar um mecanismo simples de "pub/sub" com React Context para que, ao mutar dados mock, todos os componentes que consomem `useTenantData` sejam forcados a re-renderizar.
 
-**Arquivo:** `src/pages/Agenda.tsx`
+### Passos
 
-Na funcao `getEventsForDate` (linhas 78-143), adicionar verificacoes de status:
+1. **Criar um contexto `MockDataContext`** em `src/contexts/MockDataContext.tsx`
+   - Expor um estado `revision` (numero) e uma funcao `notifyChange()` que incrementa esse estado
+   - Isso garante que qualquer componente consumindo o contexto re-renderize quando `notifyChange` for chamado
 
-1. **Audiencias (linha 91-104):** Adicionar filtro para ignorar audiencias de processos encerrados:
-   ```
-   if (caso?.status === "encerrado") return;
-   ```
+2. **Atualizar `useTenantData`** (`src/hooks/useTenantData.ts`)
+   - Importar e consumir o `revision` do `MockDataContext` (basta ler o valor para que o hook fique "inscrito" nas mudancas)
 
-2. **Prazos (linha 106-118):** Adicionar filtro para ignorar prazos cumpridos:
-   ```
-   if (d.status === "cumprido") return;
-   ```
+3. **Atualizar `NovoProcesso.tsx`**
+   - Ao criar o processo, chamar `notifyChange()` do contexto apos o `mockCases.push()`
+   - Remover dependencia do `bumpMockRevision` (substituido pelo contexto)
 
-3. **Tarefas (linha 120-141):** Adicionar filtro para ignorar tarefas concluidas:
-   ```
-   if (t.status === "concluida") return;
-   ```
+4. **Atualizar `NovaTarefa.tsx`**
+   - Mesma logica: chamar `notifyChange()` apos `mockTasks.push()`
 
-### Resultado Esperado
+5. **Atualizar qualquer outro local que mute dados mock** (ex: `EditarProcessoDialog.tsx`, timeline events)
+   - Adicionar chamada a `notifyChange()` para garantir consistencia
 
-| Indicador Agenda | Antes | Depois |
-|---|---|---|
-| Total no periodo | 8 | 0 |
-| Audiencias | 1 | 0 |
-| Prazos | 3 | 0 |
-| Tarefas | 4 | 0 |
+6. **Registrar o `MockDataProvider`** no `App.tsx` ou `main.tsx`, envolvendo a arvore de componentes
 
-O calendario ficara limpo, sem eventos exibidos, e a secao "Proximos Eventos" tambem ficara vazia.
+### Detalhes Tecnicos
+
+- O contexto tera um estado simples: `const [revision, setRevision] = useState(0)` e `notifyChange = () => setRevision(r => r + 1)`
+- `useTenantData` lera `revision` apenas para se inscrever no contexto -- nao precisa usar o valor diretamente
+- Isso e o padrao mais leve possivel sem adicionar bibliotecas externas de estado
+
