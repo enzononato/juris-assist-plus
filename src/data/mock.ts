@@ -1,3 +1,8 @@
+/** Bump this to force useMemo recalculation after mock data mutations */
+let _mockRevision = 0;
+export function bumpMockRevision() { _mockRevision++; }
+export function getMockRevision() { return _mockRevision; }
+
 export type CaseStatus = 'novo' | 'em_andamento' | 'audiencia_marcada' | 'sentenca' | 'recurso' | 'encerrado';
 export type Priority = 'baixa' | 'media' | 'alta' | 'critica';
 export type TaskStatus = 'aberta' | 'em_andamento' | 'aguardando' | 'concluida';

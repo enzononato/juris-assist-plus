@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCompanies, mockEmployees, mockCases } from "@/data/mock";
+import { mockCompanies, mockEmployees, mockCases, bumpMockRevision } from "@/data/mock";
 import type { Case } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +54,7 @@ export default function NovoProcesso() {
     };
 
     mockCases.push(newCase);
+    bumpMockRevision();
 
     toast({
       title: "Processo criado!",
