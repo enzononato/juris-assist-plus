@@ -52,7 +52,7 @@ export default function NovoProcesso() {
       lawyer: "",
       confidentiality: "normal",
       filed_at: new Date().toISOString().slice(0, 10),
-      amount: amount ? parseFloat(amount.replace(/\D/g, "")) / 100 : undefined,
+      amount: amount ? parseFloat(amount.replace(/\./g, "").replace(",", ".")) : undefined,
     };
 
     mockCases.push(newCase);
@@ -126,9 +126,16 @@ export default function NovoProcesso() {
         <div className="space-y-2">
           <Label>Valor da Causa (R$)</Label>
           <Input
-            placeholder="Ex: 50.000,00"
+            placeholder="R$ 0,00"
+            inputMode="numeric"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "");
+              if (!raw) { setAmount(""); return; }
+              const cents = parseInt(raw, 10);
+              const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              setAmount(formatted);
+            }}
           />
         </div>
 

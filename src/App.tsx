@@ -33,7 +33,10 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AuthenticatedApp() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Prevent login flash during page reloads / HMR
+  if (isLoading) return null;
 
   if (!isAuthenticated) {
     return <Login />;

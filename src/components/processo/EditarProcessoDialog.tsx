@@ -58,7 +58,7 @@ export default function EditarProcessoDialog({ caso, open, onOpenChange, onUpdat
 
   const [court, setCourt] = useState(caso.court);
   const [theme, setTheme] = useState(caso.theme);
-  const [amount, setAmount] = useState(caso.amount != null ? String(caso.amount) : "");
+  const [amount, setAmount] = useState(caso.amount != null ? caso.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
   const [caseNumber, setCaseNumber] = useState(caso.case_number);
   const [employee, setEmployee] = useState(caso.employee);
   const [branch, setBranch] = useState(caso.branch);
@@ -100,7 +100,7 @@ export default function EditarProcessoDialog({ caso, open, onOpenChange, onUpdat
       changes.push("Tema");
     }
 
-    const newAmount = amount.trim() ? parseFloat(amount.replace(/[^\d.,]/g, "").replace(",", ".")) : undefined;
+    const newAmount = amount.trim() ? parseFloat(amount.replace(/\./g, "").replace(",", ".")) : undefined;
     const oldAmount = caso.amount;
     if (newAmount !== oldAmount) {
       const fmt = (v?: number) => v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Não informado";
@@ -243,15 +243,18 @@ export default function EditarProcessoDialog({ caso, open, onOpenChange, onUpdat
             <Input
               id="edit-amount"
               type="text"
-              inputMode="decimal"
-              placeholder="Ex: 50000.00"
+              inputMode="numeric"
+              placeholder="R$ 0,00"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "");
+                if (!raw) { setAmount(""); return; }
+                const cents = parseInt(raw, 10);
+                const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                setAmount(formatted);
+              }}
               className="h-9 text-sm"
             />
-            <p className="text-[10px] text-muted-foreground">
-              Use ponto ou vírgula como separador decimal
-            </p>
           </div>
         </div>
 

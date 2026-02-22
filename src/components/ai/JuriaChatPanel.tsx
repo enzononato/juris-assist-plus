@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { buildJuriaContext } from "@/lib/buildJuriaContext";
+import { useTenantData } from "@/hooks/useTenantData";
 
 interface Message {
   role: "user" | "assistant";
@@ -176,6 +177,7 @@ interface Props {
 }
 
 export default function JuriaChatPanel({ onClose }: Props) {
+  const { cases } = useTenantData();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -200,8 +202,8 @@ export default function JuriaChatPanel({ onClose }: Props) {
     setInput("");
     setIsStreaming(true);
 
-    // Build context from current system data
-    const context = buildJuriaContext();
+    // Build context from current system data (use tenant-filtered cases)
+    const context = buildJuriaContext(cases);
 
     let assistantSoFar = "";
 
@@ -226,7 +228,7 @@ export default function JuriaChatPanel({ onClose }: Props) {
         setIsStreaming(false);
       },
     });
-  }, [isStreaming, messages]);
+  }, [isStreaming, messages, cases]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
