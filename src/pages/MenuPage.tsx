@@ -1,16 +1,23 @@
+import { useRef } from "react";
 import {
   Building2, Users, Settings, Shield, FileText, LogOut, Plug, CalendarDays,
   UserCheck, BarChart3, Bell, ShieldCheck, GanttChart, BookOpen, LayoutDashboard,
-  FolderKanban, ListTodo, AlertTriangle, Download,
+  FolderKanban, ListTodo, AlertTriangle, Download, Upload,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useMockData } from "@/contexts/MockDataContext";
 import {
   mockCompanies, mockEmployees, mockCases, mockTasks, mockHearings, mockDeadlines,
   mockAlerts, mockTimelineEvents, mockEvidenceRequests, mockEvidenceItems,
   mockDownloadLogs, mockChecklistTemplates, mockCaseChecklists, mockResponsaveis,
 } from "@/data/mock";
+
+function restoreMockArray(target: any[], source: any[]) {
+  target.length = 0;
+  source.forEach((item: any) => target.push(item));
+}
 
 interface MenuItem {
   label: string;
@@ -94,6 +101,42 @@ function MenuCard({ item }: { item: MenuItem }) {
 }
 
 export default function MenuPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { notifyChange } = useMockData();
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const backup = JSON.parse(ev.target?.result as string);
+        const d = backup.data;
+        if (!d) throw new Error("Formato inválido");
+        if (d.empresas) restoreMockArray(mockCompanies, d.empresas);
+        if (d.funcionarios) restoreMockArray(mockEmployees, d.funcionarios);
+        if (d.processos) restoreMockArray(mockCases, d.processos);
+        if (d.tarefas) restoreMockArray(mockTasks, d.tarefas);
+        if (d.audiencias) restoreMockArray(mockHearings, d.audiencias);
+        if (d.prazos) restoreMockArray(mockDeadlines, d.prazos);
+        if (d.alertas) restoreMockArray(mockAlerts, d.alertas);
+        if (d.timeline) restoreMockArray(mockTimelineEvents, d.timeline);
+        if (d.solicitacoes_provas) restoreMockArray(mockEvidenceRequests, d.solicitacoes_provas);
+        if (d.itens_provas) restoreMockArray(mockEvidenceItems, d.itens_provas);
+        if (d.logs_download) restoreMockArray(mockDownloadLogs, d.logs_download);
+        if (d.templates_checklists) restoreMockArray(mockChecklistTemplates, d.templates_checklists);
+        if (d.checklists_aplicados) restoreMockArray(mockCaseChecklists, d.checklists_aplicados);
+        if (d.responsaveis) restoreMockArray(mockResponsaveis, d.responsaveis);
+        notifyChange();
+        toast({ title: "✅ Backup restaurado", description: `Dados importados de ${backup.exported_at ? new Date(backup.exported_at).toLocaleString("pt-BR") : "arquivo"}.` });
+      } catch {
+        toast({ title: "❌ Erro ao importar", description: "Arquivo JSON inválido ou formato incompatível.", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="mb-8">
@@ -154,6 +197,14 @@ export default function MenuPage() {
           <Download className="h-4 w-4" />
           Exportar Backup Completo (JSON)
         </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-success transition-colors hover:bg-success/10"
+        >
+          <Upload className="h-4 w-4" />
+          Importar Backup (JSON)
+        </button>
+        <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportBackup} />
         <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10">
           <LogOut className="h-4 w-4" />
           Sair do Sistema
