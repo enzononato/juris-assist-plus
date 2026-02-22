@@ -1,10 +1,16 @@
 import {
   Building2, Users, Settings, Shield, FileText, LogOut, Plug, CalendarDays,
   UserCheck, BarChart3, Bell, ShieldCheck, GanttChart, BookOpen, LayoutDashboard,
-  FolderKanban, ListTodo, AlertTriangle,
+  FolderKanban, ListTodo, AlertTriangle, Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import {
+  mockCompanies, mockEmployees, mockCases, mockTasks, mockHearings, mockDeadlines,
+  mockAlerts, mockTimelineEvents, mockEvidenceRequests, mockEvidenceItems,
+  mockDownloadLogs, mockChecklistTemplates, mockCaseChecklists, mockResponsaveis,
+} from "@/data/mock";
 
 interface MenuItem {
   label: string;
@@ -110,7 +116,44 @@ export default function MenuPage() {
         ))}
       </div>
 
-      <div className="mt-10 border-t pt-6">
+      <div className="mt-10 border-t pt-6 flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => {
+            const backup = {
+              exported_at: new Date().toISOString(),
+              version: "1.0",
+              data: {
+                empresas: mockCompanies,
+                funcionarios: mockEmployees,
+                processos: mockCases,
+                tarefas: mockTasks,
+                audiencias: mockHearings,
+                prazos: mockDeadlines,
+                alertas: mockAlerts,
+                timeline: mockTimelineEvents,
+                solicitacoes_provas: mockEvidenceRequests,
+                itens_provas: mockEvidenceItems,
+                logs_download: mockDownloadLogs,
+                templates_checklists: mockChecklistTemplates,
+                checklists_aplicados: mockCaseChecklists,
+                responsaveis: mockResponsaveis,
+              },
+            };
+            const json = JSON.stringify(backup, null, 2);
+            const blob = new Blob([json], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `siag_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast({ title: "📦 Backup exportado", description: "Todos os dados foram salvos em JSON." });
+          }}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-primary transition-colors hover:bg-primary/10"
+        >
+          <Download className="h-4 w-4" />
+          Exportar Backup Completo (JSON)
+        </button>
         <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10">
           <LogOut className="h-4 w-4" />
           Sair do Sistema
