@@ -578,7 +578,7 @@ export default function Processos() {
           <div className="flex gap-2">
             {/* Sort */}
             <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
-              <SelectTrigger className="h-10 w-[160px] rounded-xl text-xs">
+              <SelectTrigger className="h-10 w-[200px] rounded-xl text-xs">
                 <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
