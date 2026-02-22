@@ -1,39 +1,66 @@
 
 
-## Problema
+## Melhorias para a Juria - Plano Completo
 
-Quando um novo processo e criado, o codigo faz `mockCases.push(newCase)` e `bumpMockRevision()`, mas **nenhum estado React muda**. Isso significa que os componentes que listam processos (Dashboard, pagina de Processos) nao re-renderizam e o novo processo "some".
+### 1. Historico de Conversas com Persistencia Local
+Atualmente o chat perde toda a conversa ao fechar o painel. Salvar o historico no `localStorage` para que o usuario possa continuar de onde parou.
 
-O `bumpMockRevision()` incrementa um contador global, porem nenhum componente React esta observando esse contador para disparar uma atualizacao.
+- Persistir mensagens no `localStorage` com chave por usuario
+- Ao abrir o painel, restaurar a conversa anterior
+- Botao "Nova Conversa" limpa o historico salvo
+- Limite de 50 mensagens salvas para nao sobrecarregar
 
-## Solucao
+### 2. Sugestoes Dinamicas Baseadas no Contexto
+As sugestoes atuais sao estaticas. Tornar as sugestoes inteligentes com base nos dados reais do sistema.
 
-Criar um mecanismo simples de "pub/sub" com React Context para que, ao mutar dados mock, todos os componentes que consomem `useTenantData` sejam forcados a re-renderizar.
+- Se ha prazo vencendo em 3 dias: sugerir "Quais prazos vencem esta semana?"
+- Se ha audiencia proxima: sugerir "Me prepare para a audiencia de [reclamante]"
+- Se ha tarefas atrasadas: sugerir "Quais tarefas estao atrasadas?"
+- Gerar ate 4 sugestoes dinamicas + 2 fixas
 
-### Passos
+### 3. Juria na Pagina da Agenda (Contexto por Pagina)
+Ao abrir a Juria estando na pagina /agenda, ela deve saber que o usuario esta vendo a agenda e oferecer insights relevantes automaticamente.
 
-1. **Criar um contexto `MockDataContext`** em `src/contexts/MockDataContext.tsx`
-   - Expor um estado `revision` (numero) e uma funcao `notifyChange()` que incrementa esse estado
-   - Isso garante que qualquer componente consumindo o contexto re-renderize quando `notifyChange` for chamado
+- Detectar a rota atual (`useLocation`) e injetar contexto extra
+- Na Agenda: adicionar sugestoes como "Resuma minha semana" ou "Quais compromissos tenho amanha?"
+- No Processo: sugestoes especificas do processo aberto
+- No Dashboard: visao geral e alertas prioritarios
 
-2. **Atualizar `useTenantData`** (`src/hooks/useTenantData.ts`)
-   - Importar e consumir o `revision` do `MockDataContext` (basta ler o valor para que o hook fique "inscrito" nas mudancas)
+### 4. Mensagem de Boas-Vindas Contextual
+Ao abrir o chat sem historico, a Juria envia uma mensagem automatica com um resumo rapido do sistema.
 
-3. **Atualizar `NovoProcesso.tsx`**
-   - Ao criar o processo, chamar `notifyChange()` do contexto apos o `mockCases.push()`
-   - Remover dependencia do `bumpMockRevision` (substituido pelo contexto)
+- "Bom dia! Voce tem X prazos pendentes, Y audiencias esta semana e Z tarefas abertas."
+- Mensagem gerada localmente (sem chamar a IA), baseada nos dados do `useTenantData`
+- Exibida como mensagem do assistente no inicio da conversa
 
-4. **Atualizar `NovaTarefa.tsx`**
-   - Mesma logica: chamar `notifyChange()` apos `mockTasks.push()`
+### 5. Acoes Rapidas no Chat
+Quando a Juria menciona um processo ou prazo, permitir que o usuario clique para navegar diretamente.
 
-5. **Atualizar qualquer outro local que mute dados mock** (ex: `EditarProcessoDialog.tsx`, timeline events)
-   - Adicionar chamada a `notifyChange()` para garantir consistencia
+- Detectar numeros de processo nas respostas (regex no formato XXXXX-XX.XXXX.X.XX.XXXX)
+- Renderizar como links clicaveis que navegam para `/processos/:id`
+- Adicionar botoes de acao apos respostas: "Criar tarefa", "Ver processo"
 
-6. **Registrar o `MockDataProvider`** no `App.tsx` ou `main.tsx`, envolvendo a arvore de componentes
+### 6. Textarea Expandivel + Atalhos de Teclado
+Substituir o input simples por um textarea que cresce conforme o usuario digita, com suporte a Shift+Enter para nova linha e Enter para enviar.
+
+### 7. Indicador de Tokens/Contexto
+Exibir discretamente quantos processos/tarefas estao sendo enviados como contexto para a IA, dando transparencia ao usuario.
+
+- Badge pequeno no header: "Conectada a X processos, Y tarefas"
+
+---
 
 ### Detalhes Tecnicos
 
-- O contexto tera um estado simples: `const [revision, setRevision] = useState(0)` e `notifyChange = () => setRevision(r => r + 1)`
-- `useTenantData` lera `revision` apenas para se inscrever no contexto -- nao precisa usar o valor diretamente
-- Isso e o padrao mais leve possivel sem adicionar bibliotecas externas de estado
+**Arquivos modificados:**
+- `src/components/ai/JuriaChatPanel.tsx` — Historico local, sugestoes dinamicas, boas-vindas contextual, textarea, links clicaveis, indicador de contexto
+- `src/components/ai/JuriaChatButton.tsx` — Passar rota atual para o painel
+- `src/lib/buildJuriaContext.ts` — Helper para gerar sugestoes dinamicas e mensagem de boas-vindas
+
+**Abordagem:**
+- Persistencia via `localStorage` (sem necessidade de banco)
+- Sugestoes dinamicas calculadas localmente a partir de `useTenantData`
+- Links clicaveis via componente customizado no `ReactMarkdown` (override de `<a>` e regex para numeros de processo)
+- Textarea com `onKeyDown` para Enter/Shift+Enter e `auto-resize` via ref
+- Nenhuma alteracao na edge function necessaria
 
