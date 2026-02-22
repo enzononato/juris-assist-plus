@@ -1,100 +1,156 @@
-import { useState } from "react";
-import { Sparkles, Loader2, FileText, AlertTriangle, Calendar, Link as LinkIcon, RefreshCw, Brain, Clock, CheckCircle2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Sparkles, FileText, AlertTriangle, Calendar, Link as LinkIcon, RefreshCw, Brain, Clock, CheckCircle2, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import ReactMarkdown from "react-markdown";
-import {
-  type Case, mockTimelineEvents, mockEvidenceItems, mockDeadlines, mockHearings,
-  statusLabels, evidenceCategoryLabels,
-} from "@/data/mock";
+import { type Case } from "@/data/mock";
+import { buildCaseContext } from "@/lib/buildJuriaContext";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   caso: Case;
 }
 
-function generateMockSummary(caso: Case) {
-  const events = mockTimelineEvents.filter((e) => e.case_id === caso.id);
-  const items = mockEvidenceItems.filter((i) => i.case_id === caso.id);
-  const deadlines = mockDeadlines.filter((d) => d.case_id === caso.id);
-  const hearings = mockHearings.filter((h) => h.case_id === caso.id);
-
-  const categoryCounts: Record<string, number> = {};
-  items.forEach((i) => { categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1; });
-
-  const pendingDeadlines = deadlines.filter((d) => d.status === "pendente");
-  const upcomingHearings = hearings.filter((h) => h.status === "agendada");
-
-  return {
-    overview: `O processo **${caso.case_number}** (${caso.theme}) movido por **${caso.employee}** contra **${caso.company}** (${caso.branch}) encontra-se no status **${statusLabels[caso.status]}**. Ajuizado em ${new Date(caso.filed_at).toLocaleDateString("pt-BR")}, tramita perante o ${caso.court}. O responsável interno é **${caso.responsible}** e o advogado é **${caso.lawyer}**.`,
-    timeline: `Foram registrados **${events.length} eventos** na timeline, incluindo ${events.filter((e) => e.type === "prova_anexada").length} anexações de prova e ${events.filter((e) => e.type === "tarefa_criada").length} tarefas criadas.`,
-    evidence: items.length > 0
-      ? `Há **${items.length} evidências** anexadas: ${Object.entries(categoryCounts).map(([k, v]) => `${v}× ${evidenceCategoryLabels[k as keyof typeof evidenceCategoryLabels] || k}`).join(", ")}.\n\n| Status | Qtd |\n|--------|-----|\n| ✅ Validadas | ${items.filter((i) => i.status === "validado").length} |\n| 📥 Recebidas | ${items.filter((i) => i.status === "recebido").length} |\n| ⏳ Pendentes | ${items.filter((i) => i.status === "pendente").length} |`
-      : "Nenhuma evidência anexada ao processo.",
-    alerts: [
-      ...pendingDeadlines.map((d) => `⏰ Prazo pendente: **${d.title}** — vence em ${new Date(d.due_at).toLocaleDateString("pt-BR")}`),
-      ...upcomingHearings.map((h) => `📅 Audiência agendada: **${h.type}** em ${new Date(h.date).toLocaleDateString("pt-BR")} às ${h.time}`),
-      ...(items.filter((i) => i.status === "pendente").length > 0 ? [`📎 **${items.filter((i) => i.status === "pendente").length}** evidência(s) pendente(s) de validação`] : []),
-    ],
-    recommendation: pendingDeadlines.length > 0
-      ? `> 💡 **Recomendação:** Priorize o prazo de "${pendingDeadlines[0].title}" que vence em breve. ${upcomingHearings.length > 0 ? `Prepare-se para a audiência de ${upcomingHearings[0].type}.` : ""}`
-      : upcomingHearings.length > 0
-        ? `> 💡 **Recomendação:** Prepare-se para a audiência de ${upcomingHearings[0].type} agendada.`
-        : "> ✅ Nenhum ponto crítico identificado no momento.",
-    generatedAt: new Date().toLocaleString("pt-BR"),
-  };
-}
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/juria-chat`;
 
 const LOADING_STEPS = [
-  { label: "Analisando timeline do processo...", icon: Clock },
-  { label: "Verificando provas e evidências...", icon: FileText },
-  { label: "Checando prazos e audiências...", icon: Calendar },
-  { label: "Gerando resumo e recomendações...", icon: Brain },
+  { label: "Coletando dados do processo...", icon: Clock },
+  { label: "Analisando timeline e provas...", icon: FileText },
+  { label: "Verificando prazos e audiências...", icon: Calendar },
+  { label: "Gerando resumo com IA...", icon: Brain },
 ];
 
 export default function ProcessoAIResumoTab({ caso }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [summary, setSummary] = useState<ReturnType<typeof generateMockSummary> | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string>("");
 
-  const generate = () => {
+  const generate = useCallback(async () => {
     setLoading(true);
     setLoadingStep(0);
     setProgress(0);
+    setSummary(null);
 
     const stepInterval = setInterval(() => {
       setLoadingStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1));
-    }, 500);
+    }, 800);
 
     const progressInterval = setInterval(() => {
-      setProgress((p) => Math.min(p + Math.random() * 20, 95));
-    }, 250);
+      setProgress((p) => Math.min(p + Math.random() * 12, 90));
+    }, 300);
 
-    setTimeout(() => {
+    try {
+      const context = buildCaseContext(caso);
+
+      const prompt = `Gere um resumo executivo completo deste processo trabalhista. Inclua as seguintes seções com formatação Markdown:
+
+## 📋 Visão Geral
+Resumo do processo com dados principais.
+
+## 📅 Linha do Tempo
+Principais eventos e marcos processuais.
+
+## 📎 Provas e Documentos
+Status das provas coletadas e pendentes.
+
+## ⚠️ Pontos de Atenção
+Prazos críticos, riscos e alertas.
+
+## 💡 Recomendações
+Próximos passos sugeridos e estratégia recomendada.
+
+## ⚖️ Análise de Risco
+Classificação do risco processual (🟢 Baixo | 🟡 Médio | 🔴 Alto) com justificativa.`;
+
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+          context,
+        }),
+      });
+
+      if (!resp.ok) {
+        let errorMsg = "Erro ao gerar resumo";
+        try {
+          const data = await resp.json();
+          if (data.error) errorMsg = data.error;
+        } catch {}
+        throw new Error(errorMsg);
+      }
+
+      // Read streaming response
+      const reader = resp.body!.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              fullText += content;
+              setSummary(fullText);
+              setProgress(Math.min(90 + (fullText.length / 20), 99));
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      setProgress(100);
+      setGeneratedAt(new Date().toLocaleString("pt-BR"));
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar resumo", description: err.message, variant: "destructive" });
+      setSummary(null);
+    } finally {
       clearInterval(stepInterval);
       clearInterval(progressInterval);
-      setProgress(100);
-      setSummary(generateMockSummary(caso));
       setLoading(false);
-    }, 2200);
-  };
+    }
+  }, [caso]);
 
   if (!summary && !loading) {
     return (
       <div className="flex flex-col items-center gap-5 rounded-xl border border-dashed p-12 text-center">
         <div className="relative">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10 shadow-lg shadow-primary/5">
             <Brain className="h-8 w-8 text-primary" />
           </div>
-          <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-warning/10">
-            <Sparkles className="h-3.5 w-3.5 text-warning" />
+          <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/20">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
           </div>
         </div>
         <div>
           <p className="text-sm font-bold">Resumo IA do Processo</p>
           <p className="mt-1.5 text-xs text-muted-foreground max-w-md leading-relaxed">
-            A Juria IA irá analisar a timeline, provas, prazos e audiências para gerar um resumo completo — ideal para preparação de audiências.
+            A Juria IA irá analisar os dados reais do processo — timeline, provas, prazos e audiências — para gerar um resumo executivo completo com recomendações estratégicas.
           </p>
         </div>
         <Button onClick={generate} className="gap-2 shadow-sm">
@@ -104,11 +160,11 @@ export default function ProcessoAIResumoTab({ caso }: Props) {
     );
   }
 
-  if (loading) {
+  if (loading && !summary) {
     const StepIcon = LOADING_STEPS[loadingStep].icon;
     return (
       <div className="flex flex-col items-center gap-4 rounded-xl border bg-gradient-to-br from-primary/5 to-background p-12 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-md shadow-primary/5">
           <StepIcon className="h-7 w-7 text-primary animate-pulse" />
         </div>
         <div className="space-y-2 w-full max-w-xs">
@@ -136,79 +192,53 @@ export default function ProcessoAIResumoTab({ caso }: Props) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <Scale className="h-3.5 w-3.5 text-primary" />
           </div>
           <h3 className="text-sm font-bold">Resumo IA – Juria</h3>
-          <Badge variant="outline" className="text-[10px] gap-1">
-            <Clock className="h-3 w-3" />
-            {summary!.generatedAt}
-          </Badge>
+          {generatedAt && (
+            <Badge variant="outline" className="text-[10px] gap-1">
+              <Clock className="h-3 w-3" />
+              {generatedAt}
+            </Badge>
+          )}
+          {loading && (
+            <Badge variant="secondary" className="text-[10px] gap-1 animate-pulse">
+              <Sparkles className="h-3 w-3" />
+              Gerando...
+            </Badge>
+          )}
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={generate}>
-          <RefreshCw className="h-3.5 w-3.5" /> Atualizar
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={generate} disabled={loading}>
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+          Atualizar
         </Button>
       </div>
 
-      <div className="rounded-xl border bg-card p-4 space-y-5">
-        <Section icon={<FileText className="h-4 w-4 text-primary" />} title="Visão Geral">
-          <MarkdownBlock text={summary!.overview} />
-        </Section>
-
-        <Section icon={<Calendar className="h-4 w-4 text-info" />} title="Timeline">
-          <MarkdownBlock text={summary!.timeline} />
-        </Section>
-
-        <Section icon={<LinkIcon className="h-4 w-4 text-success" />} title="Provas e Evidências">
-          <MarkdownBlock text={summary!.evidence} />
-        </Section>
-
-        {summary!.alerts.length > 0 && (
-          <Section icon={<AlertTriangle className="h-4 w-4 text-warning" />} title="Pontos de Atenção">
-            <ul className="space-y-2">
-              {summary!.alerts.map((a, i) => (
-                <li key={i} className="text-sm rounded-lg bg-warning/5 border border-warning/10 px-3 py-2">
-                  <MarkdownBlock text={a} />
-                </li>
-              ))}
-            </ul>
-          </Section>
+      <div className="rounded-xl border bg-card p-5">
+        <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground
+          prose-headings:text-foreground prose-strong:text-foreground
+          prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2
+          prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1.5
+          prose-blockquote:border-primary/30 prose-blockquote:bg-primary/5 prose-blockquote:rounded-lg prose-blockquote:py-2 prose-blockquote:px-3 prose-blockquote:not-italic prose-blockquote:text-sm
+          prose-table:text-xs prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1
+          prose-th:bg-muted/50 prose-th:font-semibold prose-table:border prose-table:rounded
+          prose-tr:border-b prose-tr:border-border/50
+          prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:text-xs
+          prose-li:my-0.5 prose-ul:my-1 prose-ol:my-1
+        ">
+          <ReactMarkdown>{summary || ""}</ReactMarkdown>
+        </div>
+        {loading && (
+          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] text-primary/60 animate-pulse">Juria está escrevendo...</span>
+          </div>
         )}
-
-        <Section icon={<Brain className="h-4 w-4 text-primary" />} title="Recomendação da IA">
-          <MarkdownBlock text={summary!.recommendation} />
-        </Section>
       </div>
-
-      <p className="text-[10px] text-muted-foreground text-center">
-        ⚠️ Resumo gerado por IA em modo demo. Verifique as informações antes de usar em audiência.
-      </p>
     </div>
   );
 }
 
-function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        {icon}
-        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</h4>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function MarkdownBlock({ text }: { text: string }) {
-  return (
-    <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground
-      prose-headings:text-foreground prose-strong:text-foreground
-      prose-blockquote:border-primary/30 prose-blockquote:bg-primary/5 prose-blockquote:rounded-lg prose-blockquote:py-2 prose-blockquote:px-3 prose-blockquote:not-italic prose-blockquote:text-sm
-      prose-table:text-xs prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1
-      prose-th:bg-muted/50 prose-th:font-semibold prose-table:border prose-table:rounded
-      prose-tr:border-b prose-tr:border-border/50
-      prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:text-xs
-    ">
-      <ReactMarkdown>{text}</ReactMarkdown>
-    </div>
-  );
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
 }

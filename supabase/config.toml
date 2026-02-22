@@ -1,1 +1,4 @@
 project_id = "wyhlezxtfhoolrvuqhfy"
+
+[functions.juria-chat]
+verify_jwt = false
