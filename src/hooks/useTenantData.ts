@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useMockData } from "@/contexts/MockDataContext";
 import {
   mockCases,
   mockTasks,
@@ -16,6 +17,8 @@ import {
  */
 export function useTenantData() {
   const { user, canAccessCompany, hasRole } = useAuth();
+  // Subscribe to mock data changes so we re-render when data is mutated
+  useMockData();
 
   if (!user) {
     return {

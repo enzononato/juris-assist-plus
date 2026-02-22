@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { mockCases, mockTasks, bumpMockRevision, type Task } from "@/data/mock";
+import { mockCases, mockTasks, type Task } from "@/data/mock";
+import { useMockData } from "@/contexts/MockDataContext";
 import { availableMockUsers } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ const ALL_USERS = availableMockUsers.map((u) => u.name);
 export default function NovaTarefa() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { notifyChange } = useMockData();
   const { addNotification } = useNotificationsContext();
 
   // Processo
@@ -114,7 +116,7 @@ export default function NovaTarefa() {
       all_day: allDay,
     };
     mockTasks.push(newTask);
-    bumpMockRevision();
+    notifyChange();
 
     // Dispara notificação in-app global
     addNotification({

@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { type Case, mockCases, mockTimelineEvents, type TimelineEvent } from "@/data/mock";
+import { useMockData } from "@/contexts/MockDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -53,6 +54,7 @@ interface Props {
 
 export default function EditarProcessoDialog({ caso, open, onOpenChange, onUpdated }: Props) {
   const { user } = useAuth();
+  const { notifyChange } = useMockData();
 
   const [court, setCourt] = useState(caso.court);
   const [theme, setTheme] = useState(caso.theme);
@@ -143,6 +145,7 @@ export default function EditarProcessoDialog({ caso, open, onOpenChange, onUpdat
       return;
     }
 
+    notifyChange();
     toast({
       title: "Processo atualizado",
       description: `Campos alterados: ${changes.join(", ")}. Registrado na timeline.`,
