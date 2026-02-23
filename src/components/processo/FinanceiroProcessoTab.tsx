@@ -23,6 +23,24 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function parseCurrencyToNumber(formatted: string): number {
+  const clean = formatted.replace(/[^\d]/g, "");
+  return clean ? parseInt(clean, 10) / 100 : 0;
+}
+
+function formatCurrencyInput(value: string): string {
+  const clean = value.replace(/[^\d]/g, "");
+  if (!clean) return "";
+  const num = parseInt(clean, 10) / 100;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function handleCurrencyChange(setter: (v: string) => void) {
+  return (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(formatCurrencyInput(e.target.value));
+  };
+}
+
 export default function FinanceiroProcessoTab({ caseId }: FinanceiroProcessoTabProps) {
   const queryClient = useQueryClient();
   const [feeOpen, setFeeOpen] = useState(false);
@@ -82,7 +100,7 @@ export default function FinanceiroProcessoTab({ caseId }: FinanceiroProcessoTabP
         case_id: caseId,
         fee_type: feeType as any,
         description: feeDesc,
-        amount: parseFloat(feeAmount),
+        amount: parseCurrencyToNumber(feeAmount),
         installments: parseInt(feeInstallments),
       });
       if (error) throw error;
@@ -102,7 +120,7 @@ export default function FinanceiroProcessoTab({ caseId }: FinanceiroProcessoTabP
         case_id: caseId,
         entry_type: entryType as any,
         description: entryDesc,
-        amount: parseFloat(entryAmount),
+        amount: parseCurrencyToNumber(entryAmount),
         category: entryCategory || null,
         due_date: entryDueDate || null,
       });
@@ -291,7 +309,7 @@ export default function FinanceiroProcessoTab({ caseId }: FinanceiroProcessoTabP
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
-                <Input type="number" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} placeholder="0,00" />
+                <Input value={feeAmount} onChange={handleCurrencyChange(setFeeAmount)} placeholder="0,00" inputMode="numeric" />
               </div>
               <div>
                 <Label className="text-xs">Parcelas</Label>
@@ -327,7 +345,7 @@ export default function FinanceiroProcessoTab({ caseId }: FinanceiroProcessoTabP
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
-                <Input type="number" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0,00" />
+                <Input value={entryAmount} onChange={handleCurrencyChange(setEntryAmount)} placeholder="0,00" inputMode="numeric" />
               </div>
               <div>
                 <Label className="text-xs">Categoria</Label>

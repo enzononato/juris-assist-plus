@@ -7,18 +7,32 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  statusLabels, priorityLabels, taskStatusLabels,
-  type CaseStatus, type Priority,
-} from "@/data/mock";
-import { useTenantData } from "@/hooks/useTenantData";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar,
   XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid,
   AreaChart, Area,
 } from "recharts";
+
+type CaseStatus = "novo" | "em_andamento" | "audiencia_marcada" | "sentenca" | "recurso" | "encerrado";
+type Priority = "baixa" | "media" | "alta" | "critica";
+type TaskStatus = "aberta" | "em_andamento" | "aguardando" | "concluida";
+
+const statusLabels: Record<CaseStatus, string> = {
+  novo: "Novo", em_andamento: "Em Andamento", audiencia_marcada: "Audiência Marcada",
+  sentenca: "Sentença", recurso: "Recurso", encerrado: "Encerrado",
+};
+
+const priorityLabels: Record<Priority, string> = {
+  baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica",
+};
+
+const taskStatusLabels: Record<TaskStatus, string> = {
+  aberta: "Aberta", em_andamento: "Em Andamento", aguardando: "Aguardando", concluida: "Concluída",
+};
 
 const statusColors: Record<CaseStatus, string> = {
   novo: "bg-info/15 text-info",
@@ -30,12 +44,8 @@ const statusColors: Record<CaseStatus, string> = {
 };
 
 const pieColors = [
-  "hsl(210, 80%, 52%)", // info - novo
-  "hsl(230, 72%, 52%)", // primary - em_andamento
-  "hsl(38, 92%, 50%)",  // warning - audiencia
-  "hsl(152, 60%, 40%)", // success - sentenca
-  "hsl(0, 72%, 51%)",   // destructive - recurso
-  "hsl(220, 10%, 70%)", // muted - encerrado
+  "hsl(210, 80%, 52%)", "hsl(230, 72%, 52%)", "hsl(38, 92%, 50%)",
+  "hsl(152, 60%, 40%)", "hsl(0, 72%, 51%)", "hsl(220, 10%, 70%)",
 ];
 
 const priorityColors: Record<Priority, string> = {
@@ -48,70 +58,121 @@ const priorityColors: Record<Priority, string> = {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { cases, tasks, alerts, deadlines, hearings, companies } = useTenantData();
+
+  // ── Supabase Queries ──
+  const { data: cases = [] } = useQuery({
+    queryKey: ["dashboard-cases"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("cases").select("*, companies(name)").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["dashboard-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tasks").select("*, cases(case_number, employee_name)").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: alerts = [] } = useQuery({
+    queryKey: ["dashboard-alerts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("alerts").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: deadlines = [] } = useQuery({
+    queryKey: ["dashboard-deadlines"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("deadlines").select("*, cases(case_number, employee_name)").order("due_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: hearings = [] } = useQuery({
+    queryKey: ["dashboard-hearings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("hearings").select("*, cases(case_number, employee_name, status)").order("date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ["dashboard-companies"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies").select("id, name").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const totalCases = cases.length;
-  const activeCases = cases.filter((c) => c.status !== "encerrado").length;
-  const pendingTasks = tasks.filter((t) => t.status !== "concluida").length;
-  const overdueTasks = tasks.filter((t) => {
+  const activeCases = cases.filter((c: any) => c.status !== "encerrado").length;
+  const pendingTasks = tasks.filter((t: any) => t.status !== "concluida").length;
+  const overdueTasks = tasks.filter((t: any) => {
     if (t.status === "concluida") return false;
-    return new Date(t.due_at) < new Date();
+    return t.due_at && new Date(t.due_at) < new Date();
   }).length;
-  const urgentDeadlines = deadlines.filter((d) => {
+  const urgentDeadlines = deadlines.filter((d: any) => {
     if (d.status !== "pendente") return false;
     const days = Math.ceil((new Date(d.due_at).getTime() - Date.now()) / 86400000);
     return days <= 7;
   });
   const nextHearing = hearings
-    .filter((h) => {
+    .filter((h: any) => {
       if (h.status !== "agendada") return false;
-      const caso = cases.find((c) => c.id === h.case_id);
-      if (caso?.status === "encerrado") return false;
-      return new Date(`${h.date}T${h.time}`) > new Date();
+      if (h.cases?.status === "encerrado") return false;
+      return new Date(`${h.date}T${h.time || "00:00"}`) > new Date();
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] as any;
   const daysToNextHearing = nextHearing
-    ? Math.ceil((new Date(`${nextHearing.date}T${nextHearing.time}`).getTime() - Date.now()) / 86400000)
+    ? Math.ceil((new Date(`${nextHearing.date}T${nextHearing.time || "00:00"}`).getTime() - Date.now()) / 86400000)
     : null;
-  const untreatedAlerts = alerts.filter((a) => !a.treated);
+  const untreatedAlerts = alerts.filter((a: any) => !a.treated);
   const upcomingHearings = hearings
-    .filter((h) => {
+    .filter((h: any) => {
       if (h.status !== "agendada") return false;
-      const caso = cases.find((c) => c.id === h.case_id);
-      return caso?.status !== "encerrado";
+      return h.cases?.status !== "encerrado";
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 4);
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 4) as any[];
   const urgentTasks = tasks
-    .filter((t) => t.status !== "concluida")
-    .sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())
-    .slice(0, 5);
+    .filter((t: any) => t.status !== "concluida")
+    .sort((a: any, b: any) => new Date(a.due_at || 0).getTime() - new Date(b.due_at || 0).getTime())
+    .slice(0, 5) as any[];
 
   // Chart data
   const statusDistribution = (Object.keys(statusLabels) as CaseStatus[])
     .map((key) => ({
       name: statusLabels[key],
-      value: cases.filter((c) => c.status === key).length,
+      value: cases.filter((c: any) => c.status === key).length,
     }))
     .filter((d) => d.value > 0);
 
   const companyDistribution = companies
-    .map((co) => ({
+    .map((co: any) => ({
       name: co.name.replace("Revalle ", ""),
-      value: cases.filter((c) => c.company === co.name).length,
+      value: cases.filter((c: any) => c.company_id === co.id).length,
     }))
     .filter((d) => d.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
 
-  // Monthly trend (mock last 6 months)
   const monthlyTrend = Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
     return {
       month: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
-      processos: Math.max(0, cases.filter((c) => {
-        const filed = new Date(c.filed_at);
+      processos: Math.max(0, cases.filter((c: any) => {
+        const filed = new Date(c.filed_at || c.created_at);
         return filed.getMonth() === d.getMonth() && filed.getFullYear() === d.getFullYear();
       }).length),
     };
@@ -156,7 +217,7 @@ export default function Dashboard() {
             <p className="text-sm font-semibold text-warning">
               {daysToNextHearing === 0 ? "Audiência hoje!" : daysToNextHearing === 1 ? "Audiência amanhã!" : `Próxima audiência em ${daysToNextHearing} dias`}
             </p>
-            <p className="truncate text-xs text-muted-foreground">{nextHearing.type} · {nextHearing.employee} · {nextHearing.time}</p>
+            <p className="truncate text-xs text-muted-foreground">{nextHearing.type} · {nextHearing.cases?.employee_name ?? "—"} · {nextHearing.time}</p>
           </div>
           <ChevronRight className="h-4 w-4 text-warning/60 shrink-0" />
         </Link>
@@ -240,7 +301,6 @@ export default function Dashboard() {
       {/* Charts Row */}
       {hasData && (
         <div className="grid gap-4 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-600 delay-200">
-          {/* Pie: Status Distribution */}
           {statusDistribution.length > 0 && (
             <div className="rounded-xl border bg-card p-5 shadow-soft">
               <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
@@ -249,23 +309,12 @@ export default function Dashboard() {
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={statusDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={75}
-                      paddingAngle={3}
-                      dataKey="value"
-                      strokeWidth={0}
-                    >
+                    <Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value" strokeWidth={0}>
                       {statusDistribution.map((_, idx) => (
                         <Cell key={idx} fill={pieColors[idx % pieColors.length]} />
                       ))}
                     </Pie>
-                    <RechartsTooltip
-                      contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid hsl(220, 16%, 90%)" }}
-                    />
+                    <RechartsTooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid hsl(220, 16%, 90%)" }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -280,7 +329,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Bar: By Company */}
           {companyDistribution.length > 0 && (
             <div className="rounded-xl border bg-card p-5 shadow-soft">
               <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
@@ -300,7 +348,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Area: Monthly Trend */}
           <div className="rounded-xl border bg-card p-5 shadow-soft">
             <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
               <Activity className="h-4 w-4 text-success" /> Evolução Mensal
@@ -333,7 +380,7 @@ export default function Dashboard() {
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <SectionHeader icon={<AlertTriangle className="h-4 w-4 text-destructive" />} title="Alertas Não Tratados" linkTo="/alertas" linkLabel="Ver todos" />
             <div className="space-y-2">
-              {untreatedAlerts.slice(0, 3).map((a) => (
+              {untreatedAlerts.slice(0, 3).map((a: any) => (
                 <div
                   key={a.id}
                   className={cn(
@@ -354,7 +401,7 @@ export default function Dashboard() {
           <SectionHeader icon={<CalendarDays className="h-4 w-4 text-primary" />} title="Próximas Audiências" linkTo="/agenda" linkLabel="Agenda" />
           {upcomingHearings.length > 0 ? (
             <div className="space-y-2">
-              {upcomingHearings.map((h) => (
+              {upcomingHearings.map((h: any) => (
                 <Link
                   key={h.id}
                   to={`/processos/${h.case_id}`}
@@ -368,7 +415,7 @@ export default function Dashboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">{h.type}</p>
-                    <p className="truncate text-xs text-muted-foreground font-medium">{h.employee} · {h.time}</p>
+                    <p className="truncate text-xs text-muted-foreground font-medium">{h.cases?.employee_name ?? "—"} · {h.time}</p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                 </Link>
@@ -384,21 +431,23 @@ export default function Dashboard() {
           <SectionHeader icon={<ClipboardList className="h-4 w-4 text-warning" />} title="Tarefas Prioritárias" linkTo="/tarefas" linkLabel="Ver todas" />
           {urgentTasks.length > 0 ? (
             <div className="space-y-2">
-              {urgentTasks.map((t) => {
-                const isOverdue = new Date(t.due_at) < new Date();
+              {urgentTasks.map((t: any) => {
+                const isOverdue = t.due_at && new Date(t.due_at) < new Date();
                 return (
                   <div key={t.id} className="flex items-start gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all hover:shadow-card duration-200">
-                    <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card", priorityColors[t.priority].replace("text-", "bg-"), priorityColors[t.priority].replace("text-", "ring-") + "/20")} />
+                    <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card", priorityColors[t.priority as Priority].replace("text-", "bg-"), priorityColors[t.priority as Priority].replace("text-", "ring-") + "/20")} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold leading-snug">{t.title}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge variant="outline" className="text-[10px] font-semibold">{taskStatusLabels[t.status]}</Badge>
-                        <span className={cn("text-[10px] font-semibold", priorityColors[t.priority])}>
-                          {priorityLabels[t.priority]}
+                        <Badge variant="outline" className="text-[10px] font-semibold">{taskStatusLabels[t.status as TaskStatus]}</Badge>
+                        <span className={cn("text-[10px] font-semibold", priorityColors[t.priority as Priority])}>
+                          {priorityLabels[t.priority as Priority]}
                         </span>
-                        <span className={cn("text-[10px] font-medium", isOverdue ? "text-destructive" : "text-muted-foreground")}>
-                          {isOverdue && "⚠ "}{new Date(t.due_at).toLocaleDateString("pt-BR")}
-                        </span>
+                        {t.due_at && (
+                          <span className={cn("text-[10px] font-medium", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                            {isOverdue && "⚠ "}{new Date(t.due_at).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -417,7 +466,7 @@ export default function Dashboard() {
             <div className="rounded-xl border bg-card p-5 shadow-soft">
               <div className="space-y-3.5">
                 {(Object.entries(statusLabels) as [CaseStatus, string][]).map(([key, label]) => {
-                  const count = cases.filter((c) => c.status === key).length;
+                  const count = cases.filter((c: any) => c.status === key).length;
                   if (count === 0) return null;
                   const percent = Math.round((count / totalCases) * 100);
                   return (
