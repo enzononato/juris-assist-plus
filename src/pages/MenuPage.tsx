@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useMockData } from "@/contexts/MockDataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   mockCompanies, mockEmployees, mockCases, mockTasks, mockHearings, mockDeadlines,
   mockAlerts, mockTimelineEvents, mockEvidenceRequests, mockEvidenceItems,
@@ -103,6 +104,7 @@ function MenuCard({ item }: { item: MenuItem }) {
 export default function MenuPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { notifyChange } = useMockData();
+  const { logout } = useAuth();
 
   const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -205,7 +207,10 @@ export default function MenuPage() {
           Importar Backup (JSON)
         </button>
         <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportBackup} />
-        <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10">
+        <button
+          onClick={() => logout()}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
+        >
           <LogOut className="h-4 w-4" />
           Sair do Sistema
         </button>

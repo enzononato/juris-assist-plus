@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 
 export type NotifType = "tarefa" | "alerta" | "sistema";
 
@@ -9,6 +9,17 @@ export interface InAppNotification {
   type: NotifType;
   read: boolean;
   created_at: string;
+}
+
+const STORAGE_KEY = "siag_notifications";
+
+function loadNotifications(): InAppNotification[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 interface NotificationsContextType {
@@ -22,7 +33,11 @@ interface NotificationsContextType {
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<InAppNotification[]>([]);
+  const [notifications, setNotifications] = useState<InAppNotification[]>(loadNotifications);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+  }, [notifications]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
