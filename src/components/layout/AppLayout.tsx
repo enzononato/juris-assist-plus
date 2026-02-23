@@ -30,6 +30,8 @@ import JuriaChatButton from "@/components/ai/JuriaChatButton";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import InAppNotificationBell from "@/components/notifications/InAppNotificationBell";
 import ProfileDialog, { getUserAvatar } from "@/components/profile/ProfileDialog";
+import PushNotificationBanner from "@/components/pwa/PushNotificationBanner";
+import OfflineIndicator from "@/components/pwa/OfflineIndicator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,6 +120,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-svh flex-col bg-background">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b glass-strong px-4">
           <div className="flex items-center gap-2.5">
+            <OfflineIndicator />
             <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "var(--gradient-primary)" }}>
               <Scale className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
@@ -145,6 +148,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
+        <PushNotificationBanner />
         <main className="flex-1 overflow-auto pb-[72px]"><PageTransition>{children}</PageTransition></main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t glass-strong safe-area-pb">
           <div className="flex h-[64px] items-center justify-around px-1">
@@ -258,6 +262,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </p>
             </button>
             <InAppNotificationBell />
+            <OfflineIndicator />
             <ThemeToggle className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" />
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" onClick={logout}>
               <LogOut className="h-3.5 w-3.5" />
@@ -272,7 +277,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto bg-background"><PageTransition>{children}</PageTransition></main>
+      <main className="flex-1 overflow-auto bg-background">
+        <PushNotificationBanner />
+        <PageTransition>{children}</PageTransition>
+      </main>
       <JuriaChatButton />
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
