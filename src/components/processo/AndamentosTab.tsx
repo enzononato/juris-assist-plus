@@ -7,6 +7,8 @@ import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useNotificationsContext } from "@/contexts/NotificationsContext";
 
 interface AndamentosTabProps {
   caseId: string;
@@ -16,6 +18,8 @@ interface AndamentosTabProps {
 export default function AndamentosTab({ caseId, caseNumber }: AndamentosTabProps) {
   const [syncing, setSyncing] = useState(false);
   const queryClient = useQueryClient();
+  const { sendNotification } = useNotifications();
+  const { addNotification } = useNotificationsContext();
 
   const { data: movements, isLoading } = useQuery({
     queryKey: ["case-movements", caseId],
@@ -54,6 +58,15 @@ export default function AndamentosTab({ caseId, caseNumber }: AndamentosTabProps
       const newCount = result?.new_movements ?? 0;
       if (newCount > 0) {
         toast({ title: `${newCount} novo(s) andamento(s) encontrado(s)!` });
+        sendNotification(`⚖️ ${newCount} novo(s) andamento(s)`, {
+          body: `Processo ${caseNumber}: ${newCount} novos andamentos encontrados no DataJud.`,
+          tag: `mov-${caseId}-${Date.now()}`,
+        });
+        addNotification({
+          title: `${newCount} novo(s) andamento(s) no processo ${caseNumber}`,
+          description: `Sincronização detectou ${newCount} novos andamentos processuais via DataJud.`,
+          type: "alerta",
+        });
       } else {
         toast({ title: "Nenhum novo andamento encontrado.", description: "Tudo atualizado." });
       }
