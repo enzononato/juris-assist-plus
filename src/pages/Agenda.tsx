@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, CalendarDays, Clock, CheckCircle2,
-  Filter, Download, AlertTriangle, ListTodo, Calendar as CalendarIcon,
-  CalendarCheck, Gavel,
+  Filter, AlertTriangle, ListTodo, Calendar as CalendarIcon,
+  CalendarCheck, Gavel, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,19 +12,21 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { mockHearings, mockDeadlines, mockTasks, mockCases, mockCompanies } from "@/data/mock";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { HeaderSkeleton, StatSkeleton, CalendarSkeleton } from "@/components/ui/page-skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   MONTHS, WEEKDAYS_FULL, TODAY,
-  type ViewType, type EventFilterType, type AssignmentFilter, type CalendarEvent,
+  type ViewType, type EventFilterType, type AssignmentFilter, type CalendarEvent, type AgendaDataSource,
   formatDateStr, getEventsForDate, getWeekDays, isSameDay, downloadICS,
 } from "@/components/agenda/agendaHelpers";
 import { EventModal } from "@/components/agenda/AgendaEventModal";
 import { StatMini, MonthView, WeekView, DayView, YearView } from "@/components/agenda/AgendaViews";
+import { CreateAgendaEventDialog } from "@/components/agenda/CreateAgendaEventDialog";
 
 export default function Agenda() {
   const { user } = useAuth();
@@ -40,33 +42,67 @@ export default function Agenda() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [timeOverrides, setTimeOverrides] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [createDialog, setCreateDialog] = useState<{ date: Date; hour?: number } | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // ── Supabase Queries ──
+  const { data: hearings = [], isLoading: loadingH } = useQuery({
+    queryKey: ["agenda-hearings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hearings")
+        .select("id, case_id, date, time, type, court, status, cases(case_number, employee_name, company_id, status, responsible)")
+        .neq("status", "cancelada");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: deadlines = [], isLoading: loadingD } = useQuery({
+    queryKey: ["agenda-deadlines"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("deadlines")
+        .select("id, case_id, title, due_at, status, cases(case_number, employee_name, company_id, responsible)")
+        .neq("status", "cumprido");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: tasks = [], isLoading: loadingT } = useQuery({
+    queryKey: ["agenda-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, due_at, status, case_id, assignees, show_in_calendar, cases(case_number, employee_name, company_id, responsible)")
+        .neq("status", "concluida")
+        .eq("show_in_calendar", true);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ["agenda-companies"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies").select("id, name").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const isLoading = loadingH || loadingD || loadingT;
+
+  const agendaData: AgendaDataSource = useMemo(() => ({
+    hearings,
+    deadlines,
+    tasks,
+  }), [hearings, deadlines, tasks]);
 
   const handleSaveTime = useCallback((eventKey: string, newTime: string) => {
     setTimeOverrides((prev) => ({ ...prev, [eventKey]: newTime }));
     setSelectedEvent((prev) => prev ? { ...prev, time: newTime, hour: parseInt(newTime.split(":")[0]) } : null);
   }, []);
-
-  const availableYears = useMemo(() => {
-    const years = new Set<number>();
-    mockHearings.forEach((h) => years.add(new Date(h.date).getFullYear()));
-    mockDeadlines.forEach((d) => years.add(new Date(d.due_at).getFullYear()));
-    mockTasks.forEach((t) => years.add(new Date(t.due_at).getFullYear()));
-    [2025, 2026, 2027].forEach((y) => years.add(y));
-    return [...years].sort();
-  }, []);
-
-  const handleYearChange = (year: string) => {
-    const y = parseInt(year);
-    const d = new Date(selectedDate);
-    d.setFullYear(y);
-    setSelectedDate(d);
-  };
 
   const prev = () => {
     const d = new Date(selectedDate);
@@ -87,12 +123,7 @@ export default function Agenda() {
   const goToToday = () => setSelectedDate(new Date(TODAY));
   const handleDayClick = (date: Date) => { setSelectedDate(date); if (view === "mes") setView("dia"); };
   const handleMonthClick = (date: Date) => { setSelectedDate(date); setView("mes"); };
-
-  const handleExportICS = () => {
-    const dateStr = formatDateStr(selectedDate);
-    const events = getEventsForDate(selectedDate, typeFilter, assignmentFilter, companyFilter, currentUserName, userRole);
-    downloadICS(events, dateStr);
-  };
+  const handleAddClick = (date: Date, hour?: number) => setCreateDialog({ date, hour });
 
   const handleExportCSV = () => {
     const dates: Date[] = [];
@@ -106,40 +137,26 @@ export default function Agenda() {
     } else {
       dates.push(selectedDate);
     }
-
     const allEvents: (CalendarEvent & { dateLabel: string })[] = [];
     dates.forEach((d) => {
-      const evs = getEventsForDate(d, typeFilter, assignmentFilter, companyFilter, currentUserName, userRole);
+      const evs = getEventsForDate(d, typeFilter, assignmentFilter, companyFilter, currentUserName, userRole, agendaData);
       evs.forEach((e) => allEvents.push({ ...e, dateLabel: d.toLocaleDateString("pt-BR") }));
     });
-
-    if (allEvents.length === 0) {
-      toast({ title: "Nenhum evento para exportar no período atual." });
-      return;
-    }
-
+    if (allEvents.length === 0) { toast({ title: "Nenhum evento para exportar." }); return; }
     const BOM = "\uFEFF";
-    const headers = ["Tipo", "Título", "Data", "Hora", "Processo", "Reclamante/Colaborador", "Responsáveis", "Detalhe"];
+    const headers = ["Tipo", "Título", "Data", "Hora", "Processo", "Colaborador", "Detalhe"];
     const typeLabel: Record<string, string> = { audiencia: "Audiência", prazo: "Prazo", tarefa: "Tarefa" };
     const rows = allEvents.map((e) => [
-      typeLabel[e.type] ?? e.type,
-      `"${(e.title ?? "").replace(/"/g, '""')}"`,
-      e.dateLabel,
-      e.time ?? "",
-      e.caseNumber ?? "",
-      e.employee ?? "",
-      `"${(e.assignees ?? []).join(", ")}"`,
-      `"${(e.detail ?? "").replace(/"/g, '""')}"`,
+      typeLabel[e.type] ?? e.type, `"${(e.title ?? "").replace(/"/g, '""')}"`, e.dateLabel,
+      e.time ?? "", e.caseNumber ?? "", e.employee ?? "", `"${(e.detail ?? "").replace(/"/g, '""')}"`,
     ]);
     const csv = BOM + [headers, ...rows].map((r) => r.join(";")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `agenda_${headerText.replace(/\s/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: `📥 CSV exportado`, description: `${allEvents.length} evento(s) do período "${headerText}"` });
+    const a = document.createElement("a"); a.href = url;
+    a.download = `agenda_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast({ title: `📥 CSV exportado com ${allEvents.length} evento(s)` });
   };
 
   const headerText = useMemo(() => {
@@ -175,7 +192,7 @@ export default function Agenda() {
     }
     let audiencias = 0, prazos = 0, tarefas = 0;
     dates.forEach((d) => {
-      const events = getEventsForDate(d, "todos", assignmentFilter, companyFilter, currentUserName, userRole);
+      const events = getEventsForDate(d, "todos", assignmentFilter, companyFilter, currentUserName, userRole, agendaData);
       events.forEach((e) => {
         if (e.type === "audiencia") audiencias++;
         else if (e.type === "prazo") prazos++;
@@ -183,10 +200,32 @@ export default function Agenda() {
       });
     });
     return { audiencias, prazos, tarefas, total: audiencias + prazos + tarefas };
-  }, [selectedDate, view, assignmentFilter, companyFilter]);
+  }, [selectedDate, view, assignmentFilter, companyFilter, agendaData, currentUserName, userRole]);
 
   const activeFilters = (typeFilter !== "todos" ? 1 : 0) + (assignmentFilter !== "todos" ? 1 : 0) + (companyFilter !== "todas" ? 1 : 0);
   const isToday = isSameDay(selectedDate, TODAY);
+
+  // Próximos eventos from Supabase
+  const upcomingHearings = useMemo(() => {
+    const todayStr = formatDateStr(new Date());
+    return hearings
+      .filter((h: any) => h.date >= todayStr && h.cases?.status !== "encerrado")
+      .sort((a: any, b: any) => a.date.localeCompare(b.date))
+      .slice(0, 5);
+  }, [hearings]);
+
+  const upcomingDeadlines = useMemo(() => {
+    const todayStr = formatDateStr(new Date());
+    return deadlines
+      .filter((d: any) => d.due_at.slice(0, 10) >= todayStr)
+      .sort((a: any, b: any) => a.due_at.localeCompare(b.due_at))
+      .slice(0, 5);
+  }, [deadlines]);
+
+  const viewProps = {
+    typeFilter, assignmentFilter, companyFilter,
+    currentUser: currentUserName, userRole, data: agendaData,
+  };
 
   if (isLoading) {
     return (
@@ -208,16 +247,14 @@ export default function Agenda() {
             <p className="text-sm text-muted-foreground font-medium">Audiências, prazos e tarefas</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={String(selectedDate.getFullYear())} onValueChange={handleYearChange}>
-              <SelectTrigger className="h-9 w-[88px] text-xs rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Button
+              size="sm"
+              className="gap-1.5 rounded-xl shadow-glow-primary text-xs"
+              style={{ background: "var(--gradient-primary)" }}
+              onClick={() => handleAddClick(selectedDate)}
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo Evento
+            </Button>
             <Button variant={showFilters ? "secondary" : "outline"} size="sm" className="gap-1.5 text-xs rounded-lg" onClick={() => setShowFilters(!showFilters)}>
               <Filter className="h-3.5 w-3.5" />
               Filtros
@@ -277,7 +314,7 @@ export default function Agenda() {
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 <SelectItem value="todas">Todas as empresas</SelectItem>
-                {mockCompanies.map((c) => (
+                {companies.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -312,10 +349,10 @@ export default function Agenda() {
         {/* Calendar */}
         <div className="flex gap-4">
           <div className="flex-1 min-w-0">
-            {view === "ano" && <YearView selectedDate={selectedDate} onMonthClick={handleMonthClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} userRole={userRole} />}
-            {view === "mes" && <MonthView selectedDate={selectedDate} onDayClick={handleDayClick} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} currentUser={currentUserName} userRole={userRole} />}
-            {view === "semana" && <WeekView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} userRole={userRole} />}
-            {view === "dia" && <DayView selectedDate={selectedDate} typeFilter={typeFilter} assignmentFilter={assignmentFilter} companyFilter={companyFilter} onEventClick={setSelectedEvent} currentUser={currentUserName} userRole={userRole} />}
+            {view === "ano" && <YearView selectedDate={selectedDate} onMonthClick={handleMonthClick} {...viewProps} />}
+            {view === "mes" && <MonthView selectedDate={selectedDate} onDayClick={handleDayClick} onAddClick={handleAddClick} {...viewProps} />}
+            {view === "semana" && <WeekView selectedDate={selectedDate} onEventClick={setSelectedEvent} onAddClick={handleAddClick} {...viewProps} />}
+            {view === "dia" && <DayView selectedDate={selectedDate} onEventClick={setSelectedEvent} onAddClick={handleAddClick} {...viewProps} />}
           </div>
         </div>
 
@@ -330,23 +367,23 @@ export default function Agenda() {
         <div className="mt-6">
           <h3 className="mb-3 text-sm font-bold">Próximos Eventos</h3>
           <div className="space-y-2">
-            {mockHearings.filter((h) => {
-              const caso = mockCases.find((c) => c.id === h.case_id);
-              return caso?.status !== "encerrado";
-            }).map((h) => (
+            {upcomingHearings.map((h: any) => (
               <Link key={h.id} to={`/processos/${h.case_id}`}
                 className="group flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
                   <Gavel className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{h.type} – {h.employee}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(h.date).toLocaleDateString("pt-BR")} às {h.time} · {h.court}</p>
+                  <p className="text-sm font-semibold">{h.type} – {h.cases?.employee_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")}
+                    {h.time && ` às ${h.time}`} · {h.court}
+                  </p>
                 </div>
                 <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">Audiência</Badge>
               </Link>
             ))}
-            {mockDeadlines.filter((d) => d.status==="pendente").map((d) => (
+            {upcomingDeadlines.map((d: any) => (
               <Link key={d.id} to={`/processos/${d.case_id}`}
                 className="group flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/10 shrink-0">
@@ -354,16 +391,30 @@ export default function Agenda() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{d.title}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(d.due_at).toLocaleDateString("pt-BR")} · {d.employee}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(d.due_at).toLocaleDateString("pt-BR")} · {d.cases?.employee_name}
+                  </p>
                 </div>
                 <Badge variant="outline" className="text-[10px] bg-warning/5 text-warning border-warning/20">Prazo</Badge>
               </Link>
             ))}
+            {upcomingHearings.length === 0 && upcomingDeadlines.length === 0 && (
+              <p className="text-sm text-muted-foreground/60 text-center py-4">Nenhum evento próximo</p>
+            )}
           </div>
         </div>
 
         {/* Event Modal */}
         {selectedEvent && <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onSaveTime={handleSaveTime} />}
+
+        {/* Create Event Dialog */}
+        {createDialog && (
+          <CreateAgendaEventDialog
+            initialDate={createDialog.date}
+            initialHour={createDialog.hour}
+            onClose={() => setCreateDialog(null)}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

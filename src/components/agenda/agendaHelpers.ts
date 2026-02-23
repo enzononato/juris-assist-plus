@@ -1,6 +1,3 @@
-import {
-  mockHearings, mockDeadlines, mockTasks, mockCases,
-} from "@/data/mock";
 import type { AppRole } from "@/contexts/AuthContext";
 
 // ── Constants ──
@@ -15,6 +12,7 @@ export type EventFilterType = "todos" | "audiencia" | "prazo" | "tarefa";
 export type AssignmentFilter = "todos" | "minhas";
 
 export interface CalendarEvent {
+  id?: string;
   type: "audiencia" | "prazo" | "tarefa";
   title: string;
   time?: string;
@@ -28,17 +26,35 @@ export interface CalendarEvent {
   assignees?: string[];
 }
 
-/** Retorna true se o caso é visível para o usuário com o papel/nome dados */
-function canUserSeeCase(caso: { responsible: string; lawyer: string; responsible_sector?: string } | undefined, userName: string, userRole: AppRole | undefined): boolean {
-  if (!caso) return false;
-  if (!userRole || userRole === "admin" || userRole === "responsavel_juridico_interno") return true;
-  if (userRole === "advogado_externo") return caso.lawyer === userName;
-  if (userRole === "dp") return caso.responsible === userName || caso.responsible_sector === "dp";
-  if (userRole === "rh") return caso.responsible === userName || caso.responsible_sector === "rh";
-  if (userRole === "vendas") return caso.responsible_sector === "vendas";
-  if (userRole === "logistica") return caso.responsible_sector === "logistica";
-  if (userRole === "frota") return caso.responsible_sector === "frota";
-  return false;
+export interface AgendaDataSource {
+  hearings: Array<{
+    id: string;
+    case_id: string;
+    date: string;
+    time: string | null;
+    type: string | null;
+    court: string | null;
+    status: string;
+    cases?: { case_number: string; employee_name: string | null; company_id: string | null; status: string; responsible: string | null } | null;
+  }>;
+  deadlines: Array<{
+    id: string;
+    case_id: string;
+    title: string;
+    due_at: string;
+    status: string;
+    cases?: { case_number: string; employee_name: string | null; company_id: string | null; responsible: string | null } | null;
+  }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    due_at: string | null;
+    status: string;
+    case_id: string | null;
+    assignees: string[] | null;
+    show_in_calendar: boolean | null;
+    cases?: { case_number: string; employee_name: string | null; company_id: string | null; responsible: string | null } | null;
+  }>;
 }
 
 export function formatDateStr(d: Date) {
@@ -50,63 +66,78 @@ export function getEventsForDate(
   typeFilter: EventFilterType,
   assignmentFilter: AssignmentFilter,
   companyFilter: string,
-  currentUser?: string,
-  userRole?: AppRole
+  currentUser: string,
+  _userRole: AppRole | undefined,
+  data: AgendaDataSource,
 ): CalendarEvent[] {
   const dateStr = formatDateStr(date);
   const items: CalendarEvent[] = [];
-  const user = currentUser ?? "Thiago";
 
   if (typeFilter === "todos" || typeFilter === "audiencia") {
-    mockHearings.forEach((h) => {
+    data.hearings.forEach((h) => {
       if (h.date !== dateStr) return;
-      const caso = mockCases.find((c) => c.id === h.case_id);
-      if (caso?.status === "encerrado") return;
-      if (!canUserSeeCase(caso, user, userRole)) return;
-      if (companyFilter !== "todas" && caso?.company_id !== companyFilter) return;
-      if (assignmentFilter === "minhas" && caso?.responsible !== user) return;
+      if (h.status === "cancelada") return;
+      if (h.cases?.status === "encerrado") return;
+      if (companyFilter !== "todas" && h.cases?.company_id !== companyFilter) return;
+      if (assignmentFilter === "minhas" && h.cases?.responsible !== currentUser) return;
+      const time = h.time ?? undefined;
       items.push({
-        type: "audiencia", title: h.type, time: h.time, date: h.date,
-        hour: parseInt(h.time.split(":")[0]), employee: h.employee,
-        caseId: h.case_id, caseNumber: h.case_number,
-        companyId: caso?.company_id, detail: h.court,
+        id: h.id,
+        type: "audiencia",
+        title: h.type ?? "Audiência",
+        time,
+        date: h.date,
+        hour: time ? parseInt(time.split(":")[0]) : undefined,
+        employee: h.cases?.employee_name ?? undefined,
+        caseId: h.case_id,
+        caseNumber: h.cases?.case_number,
+        companyId: h.cases?.company_id ?? undefined,
+        detail: h.court ?? undefined,
       });
     });
   }
 
   if (typeFilter === "todos" || typeFilter === "prazo") {
-    mockDeadlines.forEach((d) => {
-      if (d.due_at !== dateStr) return;
+    data.deadlines.forEach((d) => {
+      const dDate = d.due_at.slice(0, 10);
+      if (dDate !== dateStr) return;
       if (d.status === "cumprido") return;
-      const caso = mockCases.find((c) => c.id === d.case_id);
-      if (!canUserSeeCase(caso, user, userRole)) return;
-      if (companyFilter !== "todas" && caso?.company_id !== companyFilter) return;
-      if (assignmentFilter === "minhas" && caso?.responsible !== user) return;
+      if (companyFilter !== "todas" && d.cases?.company_id !== companyFilter) return;
+      if (assignmentFilter === "minhas" && d.cases?.responsible !== currentUser) return;
       items.push({
-        type: "prazo", title: d.title, date: d.due_at, employee: d.employee,
-        caseId: d.case_id, caseNumber: d.case_number, companyId: caso?.company_id,
+        id: d.id,
+        type: "prazo",
+        title: d.title,
+        date: dDate,
+        employee: d.cases?.employee_name ?? undefined,
+        caseId: d.case_id,
+        caseNumber: d.cases?.case_number,
+        companyId: d.cases?.company_id ?? undefined,
       });
     });
   }
 
   if (typeFilter === "todos" || typeFilter === "tarefa") {
-    mockTasks.filter((t) => t.show_in_calendar).forEach((t) => {
+    data.tasks.forEach((t) => {
+      if (!t.due_at) return;
       if (!t.due_at.startsWith(dateStr)) return;
       if (t.status === "concluida") return;
-      const caso = t.case_id ? mockCases.find((c) => c.id === t.case_id) : undefined;
-      const caseVisible = caso ? canUserSeeCase(caso, user, userRole) : true;
-      const isAssignee = t.assignees.includes(user);
-      const sectorOnly = userRole === "vendas" || userRole === "logistica" || userRole === "frota";
-      if (sectorOnly && !isAssignee) return;
-      if (!sectorOnly && !caseVisible && !isAssignee) return;
-      if (companyFilter !== "todas" && caso && caso.company_id !== companyFilter) return;
-      if (assignmentFilter === "minhas" && !t.assignees.includes(user)) return;
-      const time = t.due_at.split("T")[1]?.slice(0,5);
+      if (t.show_in_calendar === false) return;
+      if (companyFilter !== "todas" && t.cases && t.cases.company_id !== companyFilter) return;
+      if (assignmentFilter === "minhas" && !(t.assignees ?? []).includes(currentUser)) return;
+      const timePart = t.due_at.includes("T") ? t.due_at.split("T")[1]?.slice(0, 5) : undefined;
       items.push({
-        type: "tarefa", title: t.title, time, date: dateStr,
-        hour: time ? parseInt(time.split(":")[0]) : undefined,
-        employee: t.employee, caseId: t.case_id, caseNumber: t.case_number,
-        companyId: caso?.company_id, assignees: t.assignees,
+        id: t.id,
+        type: "tarefa",
+        title: t.title,
+        time: timePart,
+        date: dateStr,
+        hour: timePart ? parseInt(timePart.split(":")[0]) : undefined,
+        employee: t.cases?.employee_name ?? undefined,
+        caseId: t.case_id ?? undefined,
+        caseNumber: t.cases?.case_number,
+        companyId: t.cases?.company_id ?? undefined,
+        assignees: t.assignees ?? undefined,
       });
     });
   }
@@ -138,8 +169,6 @@ export function allDayColor(type: string) {
 export function eventTypeLabel(type: string) {
   return type === "audiencia" ? "Audiência" : type === "prazo" ? "Prazo" : "Tarefa";
 }
-
-// eventTypeIcon is defined in AgendaEventModal.tsx (requires JSX)
 
 // ── ICS Export ──
 function generateICS(events: CalendarEvent[], dateStr: string): string {
