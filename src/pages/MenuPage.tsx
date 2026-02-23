@@ -2,7 +2,7 @@ import { useRef } from "react";
 import {
   Building2, Users, Settings, Shield, FileText, LogOut, Plug, CalendarDays,
   UserCheck, BarChart3, Bell, ShieldCheck, GanttChart, BookOpen, LayoutDashboard,
-  FolderKanban, ListTodo, AlertTriangle, Download, Upload,
+  FolderKanban, ListTodo, AlertTriangle, Download, Upload, Clock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,7 @@ const sections: MenuSection[] = [
       { label: "Cronograma", icon: GanttChart, description: "Fases do projeto", path: "/cronograma", color: "text-primary", bgColor: "bg-primary/10" },
       { label: "Relatórios", icon: BarChart3, description: "KPIs e dashboards", path: "/relatorios", color: "text-info", bgColor: "bg-info/10" },
       { label: "Modelos de Documentos", icon: FileText, description: "Templates e geração automática", path: "/modelos-documentos", color: "text-accent-foreground", bgColor: "bg-accent/10" },
+      { label: "Central de Prazos", icon: Clock, description: "Calculadora, feriados e suspensões", path: "/central-prazos", color: "text-destructive", bgColor: "bg-destructive/10" },
       { label: "Responsáveis", icon: UserCheck, description: "Gerenciar contatos", path: "/responsaveis", color: "text-success", bgColor: "bg-success/10" },
       { label: "Empresas e Filiais", icon: Building2, description: "Gerenciar organizações", path: "/empresas", color: "text-warning", bgColor: "bg-warning/10" },
     ],

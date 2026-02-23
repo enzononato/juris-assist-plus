@@ -386,31 +386,106 @@ export type Database = {
         }
         Relationships: []
       }
+      deadline_suspensions: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          deadline_id: string | null
+          id: string
+          reason: string
+          remaining_days: number | null
+          resumed_at: string | null
+          suspended_at: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          deadline_id?: string | null
+          id?: string
+          reason: string
+          remaining_days?: number | null
+          resumed_at?: string | null
+          suspended_at?: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          deadline_id?: string | null
+          id?: string
+          reason?: string
+          remaining_days?: number | null
+          resumed_at?: string | null
+          suspended_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadline_suspensions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadline_suspensions_deadline_id_fkey"
+            columns: ["deadline_id"]
+            isOneToOne: false
+            referencedRelation: "deadlines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deadlines: {
         Row: {
+          alert_15d: boolean | null
+          alert_3d: boolean | null
+          alert_7d: boolean | null
+          alert_today: boolean | null
+          business_days_count: number | null
           case_id: string
+          court: string | null
           created_at: string
+          deadline_type: string | null
           due_at: string
           id: string
+          original_due_at: string | null
           status: Database["public"]["Enums"]["deadline_status"]
+          suspended: boolean | null
           title: string
           updated_at: string
         }
         Insert: {
+          alert_15d?: boolean | null
+          alert_3d?: boolean | null
+          alert_7d?: boolean | null
+          alert_today?: boolean | null
+          business_days_count?: number | null
           case_id: string
+          court?: string | null
           created_at?: string
+          deadline_type?: string | null
           due_at: string
           id?: string
+          original_due_at?: string | null
           status?: Database["public"]["Enums"]["deadline_status"]
+          suspended?: boolean | null
           title: string
           updated_at?: string
         }
         Update: {
+          alert_15d?: boolean | null
+          alert_3d?: boolean | null
+          alert_7d?: boolean | null
+          alert_today?: boolean | null
+          business_days_count?: number | null
           case_id?: string
+          court?: string | null
           created_at?: string
+          deadline_type?: string | null
           due_at?: string
           id?: string
+          original_due_at?: string | null
           status?: Database["public"]["Enums"]["deadline_status"]
+          suspended?: boolean | null
           title?: string
           updated_at?: string
         }
@@ -810,6 +885,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      holidays: {
+        Row: {
+          court: string | null
+          created_at: string
+          date: string
+          id: string
+          name: string
+          recurring: boolean
+          scope: string
+        }
+        Insert: {
+          court?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+          recurring?: boolean
+          scope?: string
+        }
+        Update: {
+          court?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+          recurring?: boolean
+          scope?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
