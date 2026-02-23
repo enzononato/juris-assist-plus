@@ -19,19 +19,21 @@ import {
   Users,
   UserCheck,
   Building2,
-  FileText,
   Search,
   Gavel,
   Clock,
 } from "lucide-react";
-import {
-  mockCases,
-  mockTasks,
-  mockHearings,
-  mockDeadlines,
-  statusLabels,
-  priorityLabels,
-} from "@/data/mock";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+const statusLabels: Record<string, string> = {
+  novo: "Novo", em_andamento: "Em Andamento", audiencia_marcada: "Audiência Marcada",
+  sentenca: "Sentença", recurso: "Recurso", encerrado: "Encerrado",
+};
+
+const priorityLabels: Record<string, string> = {
+  baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica",
+};
 
 const pages = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -52,7 +54,6 @@ export default function GlobalSearch() {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || e.key === "/") {
-        // Don't trigger if user is typing in an input/textarea
         const el = document.activeElement;
         if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable)) {
           if (e.key === "/") return;
@@ -70,16 +71,59 @@ export default function GlobalSearch() {
     navigate(path);
   };
 
-  const cases = useMemo(() => mockCases.slice(0, 20), []);
-  const tasks = useMemo(() => mockTasks.slice(0, 15), []);
-  const hearings = useMemo(
-    () => mockHearings.filter((h) => h.status === "agendada").slice(0, 10),
-    []
-  );
-  const deadlines = useMemo(
-    () => mockDeadlines.filter((d) => d.status === "pendente").slice(0, 10),
-    []
-  );
+  const { data: cases = [] } = useQuery({
+    queryKey: ["search-cases"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cases")
+        .select("id, case_number, employee_name, status")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["search-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, priority")
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: hearings = [] } = useQuery({
+    queryKey: ["search-hearings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hearings")
+        .select("id, case_id, type, date, cases(employee_name)")
+        .eq("status", "agendada" as any)
+        .order("date")
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: deadlines = [] } = useQuery({
+    queryKey: ["search-deadlines"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("deadlines")
+        .select("id, case_id, title, due_at")
+        .eq("status", "pendente" as any)
+        .order("due_at")
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
@@ -100,14 +144,14 @@ export default function GlobalSearch() {
           <>
             <CommandSeparator />
             <CommandGroup heading="Processos">
-              {cases.map((c) => (
+              {cases.map((c: any) => (
                 <CommandItem key={c.id} onSelect={() => go(`/processos/${c.id}`)}>
                   <Scale className="mr-2 h-4 w-4 text-primary" />
                   <span className="flex-1 truncate">
-                    {c.case_number} — {c.employee}
+                    {c.case_number} — {c.employee_name ?? "—"}
                   </span>
                   <span className="ml-2 text-xs text-muted-foreground">
-                    {statusLabels[c.status]}
+                    {statusLabels[c.status] ?? c.status}
                   </span>
                 </CommandItem>
               ))}
@@ -119,12 +163,12 @@ export default function GlobalSearch() {
           <>
             <CommandSeparator />
             <CommandGroup heading="Tarefas">
-              {tasks.map((t) => (
+              {tasks.map((t: any) => (
                 <CommandItem key={t.id} onSelect={() => go("/tarefas")}>
                   <ClipboardList className="mr-2 h-4 w-4 text-success" />
                   <span className="flex-1 truncate">{t.title}</span>
                   <span className="ml-2 text-xs text-muted-foreground">
-                    {priorityLabels[t.priority]}
+                    {priorityLabels[t.priority] ?? t.priority}
                   </span>
                 </CommandItem>
               ))}
@@ -136,11 +180,11 @@ export default function GlobalSearch() {
           <>
             <CommandSeparator />
             <CommandGroup heading="Audiências">
-              {hearings.map((h) => (
+              {hearings.map((h: any) => (
                 <CommandItem key={h.id} onSelect={() => go(`/processos/${h.case_id}`)}>
                   <Gavel className="mr-2 h-4 w-4 text-warning" />
                   <span className="flex-1 truncate">
-                    {h.type} — {h.employee}
+                    {h.type} — {h.cases?.employee_name ?? "—"}
                   </span>
                   <span className="ml-2 text-xs text-muted-foreground">
                     {new Date(h.date).toLocaleDateString("pt-BR")}
@@ -155,7 +199,7 @@ export default function GlobalSearch() {
           <>
             <CommandSeparator />
             <CommandGroup heading="Prazos Pendentes">
-              {deadlines.map((d) => (
+              {deadlines.map((d: any) => (
                 <CommandItem key={d.id} onSelect={() => go(`/processos/${d.case_id}`)}>
                   <Clock className="mr-2 h-4 w-4 text-destructive" />
                   <span className="flex-1 truncate">{d.title}</span>
