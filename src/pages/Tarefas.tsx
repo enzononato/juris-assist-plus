@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, CheckCircle2, Circle, Clock, AlertTriangle, ListChecks, Trash2, Search, X, Download, ChevronLeft, ChevronRight, LayoutList, Columns3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
-import { taskStatusLabels, priorityLabels, type Priority, type TaskStatus } from "@/data/mock";
+import { taskStatusLabels, priorityLabels, type Priority, type TaskStatus, type Task } from "@/data/mock";
 import { useTenantData } from "@/hooks/useTenantData";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,62 @@ const statusIcons: Record<TaskStatus, React.ReactNode> = {
   concluida: <CheckCircle2 className="h-4 w-4 text-success" />,
 };
 
+const taskStatusColors: Record<TaskStatus, string> = {
+  aberta: "bg-muted/60 text-muted-foreground border-muted",
+  em_andamento: "bg-primary/10 text-primary border-primary/30",
+  aguardando: "bg-warning/15 text-warning border-warning/30",
+  concluida: "bg-success/15 text-success border-success/30",
+};
+
+type ViewMode = "list" | "kanban";
+
+// ── Task Kanban Column ──
+function TaskKanbanColumn({ status, tasks, onStatusChange, onDelete }: { status: TaskStatus; tasks: Task[]; onStatusChange: (id: string, s: string) => void; onDelete: (id: string) => void }) {
+  return (
+    <div className="flex flex-col min-w-[260px] max-w-[320px] flex-1">
+      <div className={cn("flex items-center gap-2 rounded-t-xl px-3 py-2 border border-b-0", taskStatusColors[status])}>
+        {statusIcons[status]}
+        <span className="text-xs font-bold">{taskStatusLabels[status]}</span>
+        <Badge variant="secondary" className="text-[9px] ml-auto h-5 min-w-5 justify-center">{tasks.length}</Badge>
+      </div>
+      <div className="flex flex-col gap-2 rounded-b-xl border border-t-0 bg-muted/30 p-2 min-h-[120px]">
+        {tasks.length === 0 && (
+          <p className="text-[10px] text-muted-foreground/50 text-center py-6">Nenhuma tarefa</p>
+        )}
+        {tasks.map((t) => {
+          const isOverdue = t.status !== "concluida" && new Date(t.due_at) < new Date();
+          return (
+            <div
+              key={t.id}
+              className="group rounded-lg border bg-card p-3 shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className={cn("h-2 w-2 shrink-0 rounded-full", priorityDot[t.priority])} />
+                <span className={cn("text-xs font-bold text-foreground truncate", t.status === "concluida" && "line-through opacity-60")}>{t.title}</span>
+              </div>
+              {t.case_number && (
+                <Link to={`/processos/${t.case_id}`} className="text-[10px] text-primary font-medium truncate block mb-1 hover:underline">
+                  {t.case_number} · {t.employee}
+                </Link>
+              )}
+              <Badge variant="outline" className={cn("text-[9px] font-semibold", priorityColors[t.priority])}>
+                {priorityLabels[t.priority]}
+              </Badge>
+              <div className="mt-2 flex items-center justify-between">
+                <span className={cn("text-[9px] font-medium", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                  {isOverdue && "⚠ "}
+                  {new Date(t.due_at).toLocaleDateString("pt-BR")}
+                </span>
+                <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">{t.assignees.join(", ")}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Tarefas() {
   const [tab, setTab] = useState("todas");
   const [search, setSearch] = useState("");
@@ -42,6 +98,7 @@ export default function Tarefas() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { tasks } = useTenantData();
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -158,7 +215,30 @@ export default function Tarefas() {
             {activeFilters > 0 && <span className="text-primary"> · {activeFilters} filtro(s) ativo(s)</span>}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center rounded-lg border bg-muted/50 p-0.5">
+            {([
+              { mode: "list" as ViewMode, icon: <LayoutList className="h-3.5 w-3.5" />, label: "Lista" },
+              { mode: "kanban" as ViewMode, icon: <Columns3 className="h-3.5 w-3.5" />, label: "Kanban" },
+            ]).map(({ mode, icon, label }) => (
+              <Tooltip key={mode}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setViewMode(mode)}
+                    className={cn(
+                      "flex items-center justify-center h-8 w-8 rounded-md transition-all",
+                      viewMode === mode
+                        ? "bg-background shadow-soft text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {icon}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent><p className="text-xs">{label}</p></TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -234,102 +314,117 @@ export default function Tarefas() {
       </Tabs>
 
       <TooltipProvider>
-        <div className="space-y-2">
-          {paginated.map((t, index) => {
-            const isOverdue = t.status !== "concluida" && new Date(t.due_at) < new Date();
-            return (
-              <div
-                key={t.id}
-                className={cn(
-                  "group flex items-start gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 sm:p-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
-                  t.status === "concluida" && "opacity-60"
-                )}
-                style={{ animationDelay: `${index * 40}ms` }}
-                role="article"
-                aria-label={`Tarefa: ${t.title}`}
-              >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="mt-0.5 shrink-0 cursor-help">{statusIcons[t.status]}</div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">{taskStatusLabels[t.status]}</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start gap-2">
-                    <div className={cn("mt-2 h-2 w-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card", priorityDot[t.priority], `ring-${priorityDot[t.priority].replace("bg-", "")}/20`)} />
-                    <p className={cn("text-sm font-semibold leading-snug", t.status === "concluida" && "line-through")}>{t.title}</p>
-                  </div>
-                  {t.case_number && (
-                    <Link to={`/processos/${t.case_id}`} className="mt-1 truncate text-xs text-primary hover:underline block font-medium ml-4">
-                      {t.case_number} · {t.employee}
-                    </Link>
+        {viewMode === "kanban" ? (
+          <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-thin">
+            {(["aberta", "em_andamento", "aguardando", "concluida"] as TaskStatus[]).map((status) => (
+              <TaskKanbanColumn
+                key={status}
+                status={status}
+                tasks={filtered.filter((t) => t.status === status)}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {paginated.map((t, index) => {
+              const isOverdue = t.status !== "concluida" && new Date(t.due_at) < new Date();
+              return (
+                <div
+                  key={t.id}
+                  className={cn(
+                    "group flex items-start gap-3 rounded-xl border bg-card p-3.5 shadow-soft transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 sm:p-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
+                    t.status === "concluida" && "opacity-60"
                   )}
-                  <div className="mt-2 ml-4 flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline" className={cn("text-[10px] font-semibold", priorityColors[t.priority])}>
-                      {priorityLabels[t.priority]}
-                    </Badge>
-                    <span className={cn("text-[11px] font-medium", isOverdue ? "text-destructive" : "text-muted-foreground")}>
-                      {isOverdue && "⚠ "}
-                      {new Date(t.due_at).toLocaleDateString("pt-BR")} {new Date(t.due_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                  <p className="mt-1 ml-4 text-[11px] text-muted-foreground font-medium">{t.assignees.join(", ")}</p>
-                </div>
-
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
-                    <SelectTrigger className="h-7 w-[120px] text-[10px] rounded-lg" aria-label="Alterar status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {(Object.entries(taskStatusLabels) as [TaskStatus, string][]).map(([k, v]) => (
-                        <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  style={{ animationDelay: `${index * 40}ms` }}
+                  role="article"
+                  aria-label={`Tarefa: ${t.title}`}
+                >
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
-                        onClick={() => handleDelete(t.id)}
-                        aria-label="Excluir tarefa"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <div className="mt-0.5 shrink-0 cursor-help">{statusIcons[t.status]}</div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Excluir tarefa</p>
+                      <p className="text-xs">{taskStatusLabels[t.status]}</p>
                     </TooltipContent>
                   </Tooltip>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-2">
+                      <div className={cn("mt-2 h-2 w-2 shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card", priorityDot[t.priority], `ring-${priorityDot[t.priority].replace("bg-", "")}/20`)} />
+                      <p className={cn("text-sm font-semibold leading-snug", t.status === "concluida" && "line-through")}>{t.title}</p>
+                    </div>
+                    {t.case_number && (
+                      <Link to={`/processos/${t.case_id}`} className="mt-1 truncate text-xs text-primary hover:underline block font-medium ml-4">
+                        {t.case_number} · {t.employee}
+                      </Link>
+                    )}
+                    <div className="mt-2 ml-4 flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className={cn("text-[10px] font-semibold", priorityColors[t.priority])}>
+                        {priorityLabels[t.priority]}
+                      </Badge>
+                      <span className={cn("text-[11px] font-medium", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                        {isOverdue && "⚠ "}
+                        {new Date(t.due_at).toLocaleDateString("pt-BR")} {new Date(t.due_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="mt-1 ml-4 text-[11px] text-muted-foreground font-medium">{t.assignees.join(", ")}</p>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
+                      <SelectTrigger className="h-7 w-[120px] text-[10px] rounded-lg" aria-label="Alterar status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {(Object.entries(taskStatusLabels) as [TaskStatus, string][]).map(([k, v]) => (
+                          <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                          onClick={() => handleDelete(t.id)}
+                          aria-label="Excluir tarefa"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Excluir tarefa</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="rounded-xl border border-dashed p-12 text-center animate-in fade-in duration-300">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
-                <ListChecks className="h-7 w-7 text-muted-foreground/50" />
-              </div>
-              <p className="text-sm font-semibold text-muted-foreground">Nenhuma tarefa encontrada</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                {activeFilters > 0 ? "Tente ajustar os filtros" : "Crie uma nova tarefa para começar"}
-              </p>
-              {activeFilters > 0 && (
-                <Button variant="outline" size="sm" className="mt-3 text-xs" onClick={clearFilters}>
-                  Limpar filtros
-                </Button>
-              )}
+              );
+            })}
+          </div>
+        )}
+
+        {filtered.length === 0 && (
+          <div className="rounded-xl border border-dashed p-12 text-center animate-in fade-in duration-300">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
+              <ListChecks className="h-7 w-7 text-muted-foreground/50" />
             </div>
-          )}
-        </div>
+            <p className="text-sm font-semibold text-muted-foreground">Nenhuma tarefa encontrada</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              {activeFilters > 0 ? "Tente ajustar os filtros" : "Crie uma nova tarefa para começar"}
+            </p>
+            {activeFilters > 0 && (
+              <Button variant="outline" size="sm" className="mt-3 text-xs" onClick={clearFilters}>
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Pagination */}
-        {filtered.length > 0 && (
+        {viewMode !== "kanban" && filtered.length > 0 && (
           <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Exibir</span>
