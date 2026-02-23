@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DollarSign, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight,
   Search, Download, CheckCircle2, Filter, BarChart3, Receipt, Wallet, Plus,
-  Pencil, Trash2
+  Pencil, Trash2, ChevronDown, ChevronRight, Briefcase
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,6 +48,111 @@ function exportCSV(rows: Record<string, any>[], filename: string) {
   a.download = `${filename}_${format(new Date(), "yyyyMMdd")}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function CaseFinanceiroCard({ caseData, formatBRL, feeTypeLabels, statusLabels, markPaid, openEdit, deleteEntry }: any) {
+  const [open, setOpen] = useState(false);
+  const saldo = caseData.totalReceitas - caseData.totalDespesas;
+
+  return (
+    <div className="rounded-lg border bg-card overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 p-4 hover:bg-accent/30 transition-colors text-left"
+      >
+        <Briefcase className="h-4 w-4 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">{caseData.case_number}</p>
+          {caseData.employee_name && <p className="text-[10px] text-muted-foreground">{caseData.employee_name}</p>}
+        </div>
+        <div className="flex items-center gap-4 shrink-0 text-right">
+          {caseData.totalFees > 0 && (
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase">Honorários</p>
+              <p className="text-xs font-semibold">{formatBRL(caseData.totalFees)}</p>
+            </div>
+          )}
+          <div>
+            <p className="text-[9px] text-muted-foreground uppercase">Receitas</p>
+            <p className="text-xs font-semibold text-success">{formatBRL(caseData.totalReceitas)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground uppercase">Despesas</p>
+            <p className="text-xs font-semibold text-destructive">{formatBRL(caseData.totalDespesas)}</p>
+          </div>
+          {caseData.totalHoras > 0 && (
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase">Horas</p>
+              <p className="text-xs font-semibold">{caseData.totalHoras.toFixed(1)}h</p>
+            </div>
+          )}
+          {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t px-4 pb-4 pt-3 space-y-3">
+          {caseData.fees.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">Honorários ({caseData.fees.length})</p>
+              {caseData.fees.map((f: any) => (
+                <div key={f.id} className="flex items-center gap-2 py-1.5 border-b last:border-b-0">
+                  <DollarSign className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-xs flex-1 truncate">{f.description}</span>
+                  <Badge variant="outline" className="text-[9px]">{feeTypeLabels[f.fee_type]}</Badge>
+                  <span className="text-xs font-semibold">{formatBRL(Number(f.amount))}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {caseData.entries.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">Lançamentos ({caseData.entries.length})</p>
+              {caseData.entries.map((e: any) => (
+                <div key={e.id} className="flex items-center gap-2 py-1.5 border-b last:border-b-0">
+                  {e.entry_type === "receita" ? <ArrowUpRight className="h-3.5 w-3.5 text-success shrink-0" /> : <ArrowDownRight className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                  <span className="text-xs flex-1 truncate">{e.description}</span>
+                  <Badge variant={e.status === "pago" ? "default" : "secondary"} className="text-[9px]">{statusLabels[e.status]}</Badge>
+                  <span className={`text-xs font-semibold ${e.entry_type === "receita" ? "text-success" : "text-destructive"}`}>
+                    {e.entry_type === "receita" ? "+" : "-"}{formatBRL(Number(e.amount))}
+                  </span>
+                  {e.status === "pendente" && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-success" onClick={() => markPaid.mutate(e.id)}>
+                      <CheckCircle2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => openEdit(e)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {caseData.timesheets.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1.5">Timesheet ({caseData.timesheets.length})</p>
+              {caseData.timesheets.map((t: any) => (
+                <div key={t.id} className="flex items-center gap-2 py-1.5 border-b last:border-b-0">
+                  <Clock className="h-3.5 w-3.5 text-info shrink-0" />
+                  <span className="text-xs flex-1 truncate">{t.description}</span>
+                  <span className="text-[10px] text-muted-foreground">{t.user_name}</span>
+                  <span className="text-xs font-semibold">{Number(t.hours).toFixed(1)}h</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-4 pt-2 border-t">
+            <span className={`text-xs font-bold ${saldo >= 0 ? "text-success" : "text-destructive"}`}>
+              Saldo: {formatBRL(saldo)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Financeiro() {
@@ -607,9 +712,10 @@ export default function Financeiro() {
       </div>
 
       {/* Tables */}
-      <Tabs defaultValue="entries">
+      <Tabs defaultValue="por-processo">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <TabsList>
+            <TabsTrigger value="por-processo">Por Processo</TabsTrigger>
             <TabsTrigger value="entries">Lançamentos ({filteredEntries.length})</TabsTrigger>
             <TabsTrigger value="fees">Honorários ({filteredFees.length})</TabsTrigger>
             <TabsTrigger value="timesheets">Timesheet ({filteredTimesheets.length})</TabsTrigger>
@@ -618,6 +724,77 @@ export default function Financeiro() {
             <Download className="h-3.5 w-3.5" /> Exportar CSV
           </Button>
         </div>
+
+        <TabsContent value="por-processo" className="space-y-3 mt-3">
+          {(() => {
+            // Group all financial data by case
+            const caseMap = new Map<string, {
+              id: string;
+              case_number: string;
+              employee_name: string;
+              fees: typeof filteredFees;
+              entries: typeof filteredEntries;
+              timesheets: typeof filteredTimesheets;
+              totalFees: number;
+              totalReceitas: number;
+              totalDespesas: number;
+              totalHoras: number;
+            }>();
+
+            filteredFees.forEach((f) => {
+              const cn = (f as any).cases?.case_number || "Sem processo";
+              const en = (f as any).cases?.employee_name || "";
+              if (!caseMap.has(f.case_id)) {
+                caseMap.set(f.case_id, { id: f.case_id, case_number: cn, employee_name: en, fees: [], entries: [], timesheets: [], totalFees: 0, totalReceitas: 0, totalDespesas: 0, totalHoras: 0 });
+              }
+              const c = caseMap.get(f.case_id)!;
+              c.fees.push(f);
+              c.totalFees += Number(f.amount);
+            });
+
+            filteredEntries.forEach((e) => {
+              const cn = (e as any).cases?.case_number || "Sem processo";
+              const en = (e as any).cases?.employee_name || "";
+              if (!caseMap.has(e.case_id)) {
+                caseMap.set(e.case_id, { id: e.case_id, case_number: cn, employee_name: en, fees: [], entries: [], timesheets: [], totalFees: 0, totalReceitas: 0, totalDespesas: 0, totalHoras: 0 });
+              }
+              const c = caseMap.get(e.case_id)!;
+              c.entries.push(e);
+              if (e.entry_type === "receita") c.totalReceitas += Number(e.amount);
+              else c.totalDespesas += Number(e.amount);
+            });
+
+            filteredTimesheets.forEach((t) => {
+              const cn = (t as any).cases?.case_number || "Sem processo";
+              const en = (t as any).cases?.employee_name || "";
+              if (!caseMap.has(t.case_id)) {
+                caseMap.set(t.case_id, { id: t.case_id, case_number: cn, employee_name: en, fees: [], entries: [], timesheets: [], totalFees: 0, totalReceitas: 0, totalDespesas: 0, totalHoras: 0 });
+              }
+              const c = caseMap.get(t.case_id)!;
+              c.timesheets.push(t);
+              c.totalHoras += Number(t.hours);
+            });
+
+            const cases = Array.from(caseMap.values()).sort((a, b) => (b.totalFees + b.totalReceitas + b.totalDespesas) - (a.totalFees + a.totalReceitas + a.totalDespesas));
+
+            if (cases.length === 0) {
+              return <p className="text-sm text-muted-foreground text-center py-8">Nenhum dado financeiro encontrado.</p>;
+            }
+
+            return cases.map((c) => (
+              <CaseFinanceiroCard
+                key={c.id}
+                caseData={c}
+                formatBRL={formatBRL}
+                feeTypeLabels={feeTypeLabels}
+                statusLabels={statusLabels}
+                markPaid={markPaid}
+                openEdit={openEdit}
+                deleteEntry={deleteEntry}
+              />
+            ));
+          })()}
+        </TabsContent>
 
         <TabsContent value="entries" className="space-y-2 mt-3">
           {filteredEntries.length === 0 ? (
