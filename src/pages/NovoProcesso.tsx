@@ -6,19 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCompanies, mockEmployees, mockCases } from "@/data/mock";
-import { useMockData } from "@/contexts/MockDataContext";
-import type { Case } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { availableMockUsers } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const RESPONSAVEIS = availableMockUsers.map((u) => u.name);
 
 export default function NovoProcesso() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { notifyChange } = useMockData();
+  const queryClient = useQueryClient();
 
   const [caseNumber, setCaseNumber] = useState("");
   const [employeeName, setEmployeeName] = useState("");
@@ -28,41 +27,55 @@ export default function NovoProcesso() {
   const [responsible, setResponsible] = useState(user?.name ?? "");
   const [manager, setManager] = useState("nenhum");
   const [amount, setAmount] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { data: companies = [] } = useQuery({
+    queryKey: ["all-companies"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies").select("id, name").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseNumber || !employeeName || !theme) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
     }
 
-    const company = mockCompanies.find((c) => c.id === companyId);
-    const newCase: Case = {
-      id: crypto.randomUUID(),
-      case_number: caseNumber,
-      company_id: companyId || "c1",
-      company: company?.name || "N/A",
-      branch: company?.name || "",
-      employee: employeeName,
-      employee_id: "",
-      theme,
-      status: status === "encerrado" ? "encerrado" : "em_andamento",
-      court: "",
-      responsible: responsible || user?.name || "",
-      lawyer: "",
-      confidentiality: "normal",
-      filed_at: new Date().toISOString().slice(0, 10),
-      amount: amount ? parseFloat(amount.replace(/\./g, "").replace(",", ".")) : undefined,
-    };
+    setSubmitting(true);
+    try {
+      const parsedAmount = amount ? parseFloat(amount.replace(/\./g, "").replace(",", ".")) : null;
 
-    mockCases.push(newCase);
-    notifyChange();
+      const { error } = await supabase.from("cases").insert({
+        case_number: caseNumber,
+        employee_name: employeeName,
+        company_id: companyId || null,
+        theme,
+        status: status as any,
+        responsible: responsible || user?.name || "",
+        amount: parsedAmount,
+        filed_at: new Date().toISOString(),
+        confidentiality: "normal" as any,
+      });
 
-    toast({
-      title: "Processo criado!",
-      description: `Processo ${caseNumber} criado com sucesso.`,
-    });
-    navigate("/processos");
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["all-cases"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-cases"] });
+
+      toast({
+        title: "Processo criado!",
+        description: `Processo ${caseNumber} criado com sucesso.`,
+      });
+      navigate("/processos");
+    } catch (err: any) {
+      toast({ title: "Erro ao criar processo", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -104,7 +117,7 @@ export default function NovoProcesso() {
               <SelectValue placeholder="Selecione a unidade" />
             </SelectTrigger>
             <SelectContent>
-              {mockCompanies.map((c) => (
+              {companies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
@@ -186,8 +199,8 @@ export default function NovoProcesso() {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button type="submit" className="gap-2" style={{ background: "var(--gradient-primary)" }}>
-            Criar Processo
+          <Button type="submit" className="gap-2" style={{ background: "var(--gradient-primary)" }} disabled={submitting}>
+            {submitting ? "Criando..." : "Criar Processo"}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link to="/processos">Cancelar</Link>
