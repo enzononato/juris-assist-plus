@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DollarSign, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight,
-  Search, Download, CheckCircle2, Filter, BarChart3, Receipt, Wallet
+  Search, Download, CheckCircle2, Filter, BarChart3, Receipt, Wallet, Plus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend, Line, ComposedChart
@@ -53,6 +56,24 @@ export default function Financeiro() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [typeFilter, setTypeFilter] = useState("todos");
   const [periodFilter, setPeriodFilter] = useState("6m");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newEntry, setNewEntry] = useState({
+    entry_type: "despesa" as "receita" | "despesa",
+    description: "",
+    amount: "",
+    category: "",
+    due_date: "",
+    case_id: "",
+  });
+
+  const { data: allCases = [] } = useQuery({
+    queryKey: ["all-cases-select"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("cases").select("id, case_number, employee_name").order("case_number");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const { data: fees } = useQuery({
     queryKey: ["all-fees"],
@@ -93,6 +114,32 @@ export default function Financeiro() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-financial-entries"] });
       toast({ title: "Lançamento marcado como pago ✓" });
+    },
+  });
+
+  const createEntry = useMutation({
+    mutationFn: async () => {
+      if (!newEntry.description.trim() || !newEntry.amount || !newEntry.case_id) {
+        throw new Error("Preencha os campos obrigatórios");
+      }
+      const { error } = await supabase.from("financial_entries").insert({
+        entry_type: newEntry.entry_type,
+        description: newEntry.description.trim(),
+        amount: parseFloat(newEntry.amount),
+        category: newEntry.category.trim() || null,
+        due_date: newEntry.due_date || null,
+        case_id: newEntry.case_id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-financial-entries"] });
+      toast({ title: "Lançamento criado com sucesso ✓" });
+      setCreateOpen(false);
+      setNewEntry({ entry_type: "despesa", description: "", amount: "", category: "", due_date: "", case_id: "" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao criar lançamento", description: err.message, variant: "destructive" });
     },
   });
 
@@ -239,6 +286,70 @@ export default function Financeiro() {
               <SelectItem value="12m">12 meses</SelectItem>
             </SelectContent>
           </Select>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5 rounded-xl shadow-glow-primary" style={{ background: "var(--gradient-primary)" }}>
+                <Plus className="h-4 w-4" /> Novo Lançamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Novo Lançamento Financeiro</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Tipo *</Label>
+                    <Select value={newEntry.entry_type} onValueChange={(v) => setNewEntry({ ...newEntry, entry_type: v as "receita" | "despesa" })}>
+                      <SelectTrigger className="h-9 text-xs mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="receita">Receita</SelectItem>
+                        <SelectItem value="despesa">Despesa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Valor (R$) *</Label>
+                    <Input type="number" step="0.01" min="0" placeholder="0,00" className="h-9 text-xs mt-1"
+                      value={newEntry.amount} onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Processo *</Label>
+                  <Select value={newEntry.case_id} onValueChange={(v) => setNewEntry({ ...newEntry, case_id: v })}>
+                    <SelectTrigger className="h-9 text-xs mt-1"><SelectValue placeholder="Selecione o processo" /></SelectTrigger>
+                    <SelectContent>
+                      {allCases.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.case_number} {c.employee_name ? `– ${c.employee_name}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Descrição *</Label>
+                  <Textarea placeholder="Descreva o lançamento..." className="text-xs mt-1 min-h-[60px]"
+                    value={newEntry.description} onChange={(e) => setNewEntry({ ...newEntry, description: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Categoria</Label>
+                    <Input placeholder="Ex: custas, perícia..." className="h-9 text-xs mt-1"
+                      value={newEntry.category} onChange={(e) => setNewEntry({ ...newEntry, category: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Vencimento</Label>
+                    <Input type="date" className="h-9 text-xs mt-1"
+                      value={newEntry.due_date} onChange={(e) => setNewEntry({ ...newEntry, due_date: e.target.value })} />
+                  </div>
+                </div>
+                <Button className="w-full gap-2" onClick={() => createEntry.mutate()} disabled={createEntry.isPending || !newEntry.description.trim() || !newEntry.amount || !newEntry.case_id}>
+                  <Plus className="h-4 w-4" /> {createEntry.isPending ? "Criando..." : "Criar Lançamento"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
