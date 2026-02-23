@@ -424,6 +424,74 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          variables: string[]
+        }
+        Insert: {
+          category?: string
+          content?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Relationships: []
+      }
+      document_versions: {
+        Row: {
+          changed_by: string | null
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          version: number
+        }
+        Insert: {
+          changed_by?: string | null
+          content?: string
+          created_at?: string
+          document_id: string
+          id?: string
+          version: number
+        }
+        Update: {
+          changed_by?: string | null
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "generated_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       download_logs: {
         Row: {
           downloaded_at: string | null
@@ -644,6 +712,57 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_documents: {
+        Row: {
+          case_id: string
+          content: string
+          created_at: string
+          id: string
+          source: string
+          template_id: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          case_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          source?: string
+          template_id?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          case_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          source?: string
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
             referencedColumns: ["id"]
           },
         ]

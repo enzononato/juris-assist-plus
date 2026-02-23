@@ -50,6 +50,7 @@ const sections: MenuSection[] = [
     items: [
       { label: "Cronograma", icon: GanttChart, description: "Fases do projeto", path: "/cronograma", color: "text-primary", bgColor: "bg-primary/10" },
       { label: "Relatórios", icon: BarChart3, description: "KPIs e dashboards", path: "/relatorios", color: "text-info", bgColor: "bg-info/10" },
+      { label: "Modelos de Documentos", icon: FileText, description: "Templates e geração automática", path: "/modelos-documentos", color: "text-accent-foreground", bgColor: "bg-accent/10" },
       { label: "Responsáveis", icon: UserCheck, description: "Gerenciar contatos", path: "/responsaveis", color: "text-success", bgColor: "bg-success/10" },
       { label: "Empresas e Filiais", icon: Building2, description: "Gerenciar organizações", path: "/empresas", color: "text-warning", bgColor: "bg-warning/10" },
     ],
