@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
@@ -27,6 +27,7 @@ import { useAlerts } from "@/contexts/AlertsContext";
 import JuriaChatButton from "@/components/ai/JuriaChatButton";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import InAppNotificationBell from "@/components/notifications/InAppNotificationBell";
+import ProfileDialog, { getUserAvatar } from "@/components/profile/ProfileDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +92,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const { user, logout, hasRole } = useAuth();
   const { untreatedCount } = useAlerts();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const avatarUrl = user ? getUserAvatar(user.id) : null;
 
   const isExternal = hasRole(["advogado_externo"]);
   const isAdmin = hasRole(["admin"]);
@@ -221,15 +224,27 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* User */}
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-sidebar-primary-foreground shadow-sm" style={{ background: "var(--gradient-primary)" }}>
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1">
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="shrink-0 rounded-xl overflow-hidden hover:ring-2 hover:ring-sidebar-primary/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={user?.name} className="h-9 w-9 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-sidebar-primary-foreground shadow-sm" style={{ background: "var(--gradient-primary)" }}>
+                  {initials}
+                </div>
+              )}
+            </button>
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="min-w-0 flex-1 text-left hover:opacity-80 transition-opacity focus:outline-none"
+            >
               <p className="truncate text-sm font-semibold">{user?.name}</p>
               <p className="truncate text-[11px] text-sidebar-foreground/40 font-medium">
                 {user ? roleLabels[user.role] : ""}
               </p>
-            </div>
+            </button>
             <InAppNotificationBell />
             <ThemeToggle className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" />
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" onClick={logout}>
@@ -247,6 +262,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1 overflow-auto bg-background">{children}</main>
       <JuriaChatButton />
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }
