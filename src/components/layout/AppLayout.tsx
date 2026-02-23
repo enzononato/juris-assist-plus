@@ -122,10 +122,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             {user && (
-              <Badge variant="outline" className="text-[9px] gap-1 font-semibold">
-                <Shield className="h-2.5 w-2.5" />
-                {roleLabels[user.role]}
-              </Badge>
+              <button
+                onClick={() => setProfileOpen(true)}
+                className="shrink-0 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+                    {initials}
+                  </div>
+                )}
+              </button>
             )}
             <ThemeToggle className="h-7 w-7 text-muted-foreground" />
             <InAppNotificationBell />
@@ -166,6 +174,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </nav>
         <JuriaChatButton />
+        <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
       </div>
     );
   }
