@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import PageTransition from "@/components/layout/PageTransition";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
@@ -142,7 +143,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto pb-[72px]">{children}</main>
+        <main className="flex-1 overflow-auto pb-[72px]"><PageTransition>{children}</PageTransition></main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t glass-strong safe-area-pb">
           <div className="flex h-[64px] items-center justify-around px-1">
             {mobileNavItems.map((item) => {
@@ -269,7 +270,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto bg-background">{children}</main>
+      <main className="flex-1 overflow-auto bg-background"><PageTransition>{children}</PageTransition></main>
       <JuriaChatButton />
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
