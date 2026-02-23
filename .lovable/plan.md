@@ -1,53 +1,58 @@
 
+## Check-up Completo do Sistema SIAG
 
-## Upload de Foto de Perfil para Usuarios
+### Erros Encontrados
 
-### O que sera feito
-Permitir que cada usuario faca upload de uma foto de perfil que substituira o avatar de iniciais coloridas. A foto sera armazenada no Supabase Storage e a URL salva no `localStorage` (ja que o sistema ainda usa dados mockados).
+**1. Erro de ref no Login (console)**
+O componente `Login` nao usa `forwardRef`, mas o React Router tenta passar uma ref para ele dentro do `AuthenticatedApp`. Isso gera o warning "Function components cannot be given refs" no console. Solucao: o `Login` nao precisa de ref -- o problema esta na forma como ele e renderizado fora de `<Routes>` no `AuthenticatedApp`. Nao e critico, mas polui o console.
 
-### Como vai funcionar
-1. Clicar no avatar (no sidebar ou na pagina de usuarios) abre um seletor de arquivo
-2. A imagem e enviada para um bucket `avatars` no Supabase Storage
-3. A URL publica e salva no `localStorage` com chave por usuario
-4. O componente `UserAvatar` passa a exibir a foto quando disponivel, mantendo as iniciais como fallback
+**2. Erro de ref no Badge (console)**  
+O componente `Badge` e uma funcao simples sem `forwardRef`. Quando usado como filho de um `Button` ou `Tooltip` na pagina Agenda, gera o mesmo warning. Solucao: adicionar `React.forwardRef` ao componente `Badge`.
 
-### Etapas
+**3. Botao "Sair do Sistema" no MenuPage nao funciona**
+O botao de logout no `MenuPage.tsx` nao chama nenhuma funcao -- e apenas um `<button>` vazio sem `onClick`. Precisa chamar `logout()` do `useAuth()`.
 
-**1. Criar bucket `avatars` no Supabase Storage**
-- Migration SQL para criar bucket publico `avatars`
-- Politica RLS permitindo upload e leitura anonima (sistema ainda nao tem auth real)
+**4. Pagina Agenda com data fixa (hardcoded)**
+A constante `TODAY = new Date(2026, 1, 16)` esta hardcoded. Isso significa que o calendario nunca mostra o dia real como "hoje". Deveria usar `new Date()`.
 
-**2. Atualizar `UserAvatar` para suportar foto**
-- Adicionar prop opcional `avatarUrl?: string`
-- Se `avatarUrl` existir, renderizar `<img>` com fallback para iniciais em caso de erro
-- Manter toda a logica atual de cores/iniciais como fallback
-
-**3. Criar hook `useUserAvatar`**
-- Gerencia upload da imagem para o Supabase Storage
-- Salva a URL no `localStorage` com chave `siag_avatar_{userId}`
-- Retorna `avatarUrl`, `uploadAvatar(file)`, `isUploading`
-
-**4. Adicionar interacao de upload no sidebar (AppLayout)**
-- Avatar do usuario logado fica clicavel
-- Ao clicar, abre `<input type="file" accept="image/*">`
-- Apos selecionar, faz upload e atualiza a foto
-
-**5. Adicionar upload na pagina Usuarios e Permissoes**
-- Botao de camera/editar sobre o avatar de cada usuario
-- Mesma logica de upload
+**5. Constante CURRENT_USER hardcoded na Agenda**
+`const CURRENT_USER = "Thiago"` esta fixo. Deveria usar o usuario logado via `useAuth()` (ja importado no componente, mas nao usado nesse ponto).
 
 ---
 
-### Detalhes Tecnicos
+### Melhorias Recomendadas
 
-**Arquivos criados:**
-- `src/hooks/useUserAvatar.ts` — hook de upload + persistencia
+**6. Seguranca: senha fixa no codigo**
+A senha `SENHA_PADRAO = "rev123"` esta exposta no codigo-fonte do Login. Qualquer pessoa pode ver via DevTools. Quando migrar para autenticacao real com Supabase Auth, isso sera resolvido.
 
-**Arquivos modificados:**
-- Migration SQL — bucket `avatars` + RLS
-- `src/components/ui/user-avatar.tsx` — prop `avatarUrl`, renderizar `<img>` com fallback
-- `src/components/layout/AppLayout.tsx` — avatar clicavel no sidebar
-- `src/pages/UsuariosPermissoes.tsx` — botao de upload no card do usuario
+**7. GlobalSearch fora do contexto de autenticacao**
+O `GlobalSearch` esta posicionado fora do `MockDataProvider` e `NotificationsProvider` no App.tsx. Ele acessa `mockCases` diretamente, entao funciona, mas se migrar para dados do Supabase, precisara de contexto adequado.
 
-**Dependencias:** Nenhuma nova (usa Supabase Storage SDK ja disponivel)
+**8. Notificacoes perdidas ao recarregar**
+O `NotificationsContext` armazena notificacoes apenas em `useState` -- ao recarregar a pagina, todas sao perdidas. Considerar persistir no `localStorage` ou Supabase.
 
+**9. Arquivos de pagina muito grandes**
+- `Agenda.tsx`: 1032 linhas
+- `Relatorios.tsx`: 707 linhas  
+- `ProcessoDetalhe.tsx`: provavelmente grande tambem
+
+Recomendavel extrair sub-componentes para facilitar manutencao.
+
+**10. Menu so visivel para admin**
+O item "Menu" no sidebar so aparece para `admin` (`adminOnly: true`). Usuarios com outras roles nao conseguem acessar funcoes como backup/export. Considerar liberar a pagina Menu para mais roles.
+
+---
+
+### Detalhes Tecnicos das Correcoes
+
+**Correcao 1 e 2 - forwardRef**: Adicionar `React.forwardRef` ao componente `Badge` em `src/components/ui/badge.tsx`.
+
+**Correcao 3 - Logout no Menu**: No `MenuPage.tsx`, importar `useAuth` e chamar `logout()` no `onClick` do botao "Sair do Sistema".
+
+**Correcao 4 e 5 - Agenda**: Substituir `TODAY` por `new Date()` e usar `user.name` do `useAuth()` em vez de `CURRENT_USER`.
+
+**Arquivos afetados:**
+- `src/components/ui/badge.tsx` -- adicionar forwardRef
+- `src/pages/MenuPage.tsx` -- wiring do botao logout
+- `src/pages/Agenda.tsx` -- remover constantes hardcoded
+- `src/contexts/NotificationsContext.tsx` -- persistencia opcional
