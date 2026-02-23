@@ -30,6 +30,7 @@ import RegrasAlertas from "@/pages/RegrasAlertas";
 import Cronograma from "@/pages/Cronograma";
 import DocumentacaoGoLive from "@/pages/DocumentacaoGoLive";
 import MenuPage from "@/pages/MenuPage";
+import Financeiro from "@/pages/Financeiro";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,7 @@ function AuthenticatedApp() {
                     <Route path="regras-alertas" element={<RegrasAlertas />} />
                     <Route path="cronograma" element={<Cronograma />} />
                     <Route path="documentacao" element={<DocumentacaoGoLive />} />
+                    <Route path="financeiro" element={<Financeiro />} />
                     <Route path="menu" element={<MenuPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

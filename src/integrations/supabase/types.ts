@@ -122,6 +122,53 @@ export type Database = {
           },
         ]
       }
+      case_fees: {
+        Row: {
+          amount: number
+          case_id: string
+          created_at: string
+          description: string
+          fee_type: Database["public"]["Enums"]["fee_type"]
+          id: string
+          installments: number | null
+          paid_installments: number | null
+          percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          case_id: string
+          created_at?: string
+          description: string
+          fee_type?: Database["public"]["Enums"]["fee_type"]
+          id?: string
+          installments?: number | null
+          paid_installments?: number | null
+          percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          created_at?: string
+          description?: string
+          fee_type?: Database["public"]["Enums"]["fee_type"]
+          id?: string
+          installments?: number | null
+          paid_installments?: number | null
+          percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_fees_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_movements: {
         Row: {
           case_id: string
@@ -551,6 +598,56 @@ export type Database = {
           },
         ]
       }
+      financial_entries: {
+        Row: {
+          amount: number
+          case_id: string
+          category: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          entry_type: Database["public"]["Enums"]["financial_entry_type"]
+          id: string
+          paid_date: string | null
+          status: Database["public"]["Enums"]["financial_entry_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          case_id: string
+          category?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          entry_type: Database["public"]["Enums"]["financial_entry_type"]
+          id?: string
+          paid_date?: string | null
+          status?: Database["public"]["Enums"]["financial_entry_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          category?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          entry_type?: Database["public"]["Enums"]["financial_entry_type"]
+          id?: string
+          paid_date?: string | null
+          status?: Database["public"]["Enums"]["financial_entry_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_entries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hearings: {
         Row: {
           case_id: string
@@ -775,6 +872,47 @@ export type Database = {
           },
         ]
       }
+      timesheets: {
+        Row: {
+          case_id: string
+          created_at: string
+          description: string
+          hourly_rate: number | null
+          hours: number
+          id: string
+          user_name: string
+          work_date: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          description: string
+          hourly_rate?: number | null
+          hours?: number
+          id?: string
+          user_name: string
+          work_date?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          description?: string
+          hourly_rate?: number | null
+          hours?: number
+          id?: string
+          user_name?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -861,6 +999,9 @@ export type Database = {
         | "parcialmente_atendida"
         | "atendida"
         | "atrasada"
+      fee_type: "fixo" | "exito" | "provisorio" | "ad_hoc"
+      financial_entry_status: "pendente" | "pago" | "cancelado"
+      financial_entry_type: "receita" | "despesa"
       hearing_status: "agendada" | "realizada" | "adiada" | "cancelada"
       priority_level: "baixa" | "media" | "alta" | "critica"
       responsible_sector: "dp" | "rh" | "frota" | "vendas" | "logistica" | "ti"
@@ -1060,6 +1201,9 @@ export const Constants = {
         "atendida",
         "atrasada",
       ],
+      fee_type: ["fixo", "exito", "provisorio", "ad_hoc"],
+      financial_entry_status: ["pendente", "pago", "cancelado"],
+      financial_entry_type: ["receita", "despesa"],
       hearing_status: ["agendada", "realizada", "adiada", "cancelada"],
       priority_level: ["baixa", "media", "alta", "critica"],
       responsible_sector: ["dp", "rh", "frota", "vendas", "logistica", "ti"],

@@ -18,6 +18,7 @@ import {
   FileText,
   CheckSquare,
   ChevronDown,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const allNavItems = [
   { label: "Tarefas", mobileLabel: "Tarefas", icon: ClipboardList, path: "/tarefas", external: true, adminOnly: false },
   { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda", external: true, adminOnly: false },
   { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos", external: true, adminOnly: false },
+  { label: "Financeiro", mobileLabel: "Financ.", icon: DollarSign, path: "/financeiro", external: true, adminOnly: false },
   { label: "Responsáveis", mobileLabel: "Resp.", icon: UserCheck, path: "/responsaveis", external: false, adminOnly: true },
   { label: "Usuários e Permissões", mobileLabel: "Usuários", icon: Users, path: "/usuarios", external: false, adminOnly: true },
   { label: "Relatórios", mobileLabel: "Relatórios", icon: BarChart3, path: "/relatorios", external: false, adminOnly: false },
