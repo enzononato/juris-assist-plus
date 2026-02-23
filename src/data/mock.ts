@@ -1,3 +1,8 @@
+/** Bump this to force useMemo recalculation after mock data mutations */
+let _mockRevision = 0;
+export function bumpMockRevision() { _mockRevision++; }
+export function getMockRevision() { return _mockRevision; }
+
 export type CaseStatus = 'novo' | 'em_andamento' | 'audiencia_marcada' | 'sentenca' | 'recurso' | 'encerrado';
 export type Priority = 'baixa' | 'media' | 'alta' | 'critica';
 export type TaskStatus = 'aberta' | 'em_andamento' | 'aguardando' | 'concluida';
@@ -95,7 +100,8 @@ export interface Alert {
 export type TimelineEventType = 
   | 'processo_criado' | 'status_alterado' | 'prazo_criado' | 'prazo_cumprido'
   | 'audiencia_agendada' | 'audiencia_realizada' | 'prova_anexada' | 'tarefa_criada'
-  | 'tarefa_concluida' | 'comentario' | 'checklist_aplicado' | 'responsavel_alterado';
+  | 'tarefa_concluida' | 'comentario' | 'checklist_aplicado' | 'responsavel_alterado'
+  | 'campo_editado';
 
 export interface TimelineEvent {
   id: string;

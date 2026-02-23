@@ -3,10 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AlertsProvider } from "@/contexts/AlertsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { MockDataProvider } from "@/contexts/MockDataContext";
 import AppLayout from "@/components/layout/AppLayout";
+import GlobalSearch from "@/components/search/GlobalSearch";
 import Login from "@/pages/Login";
 import Index from "@/pages/Index";
 import Processos from "@/pages/Processos";
@@ -32,64 +35,72 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AuthenticatedApp() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Prevent login flash during page reloads / HMR
+  if (isLoading) return null;
 
   if (!isAuthenticated) {
     return <Login />;
   }
 
   return (
-    <NotificationsProvider>
-      <AlertsProvider>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route
-            path="/*"
-            element={
-              <AppLayout>
-                <Routes>
-                  <Route path="dashboard" element={<Index />} />
-                  <Route path="processos" element={<Processos />} />
-                  <Route path="processos/novo" element={<NovoProcesso />} />
-                  <Route path="processos/:id" element={<ProcessoDetalhe />} />
-                  <Route path="tarefas" element={<Tarefas />} />
-                  <Route path="tarefas/nova" element={<NovaTarefa />} />
-                  <Route path="agenda" element={<Agenda />} />
-                  <Route path="responsaveis" element={<Responsaveis />} />
-                  <Route path="alertas" element={<Alertas />} />
-                  <Route path="integracoes" element={<Integracoes />} />
-                  <Route path="relatorios" element={<Relatorios />} />
-                  <Route path="auditoria" element={<Auditoria />} />
-                  <Route path="empresas" element={<Empresas />} />
-                  <Route path="usuarios" element={<UsuariosPermissoes />} />
-                  <Route path="checklists-templates" element={<ChecklistTemplates />} />
-                  <Route path="regras-alertas" element={<RegrasAlertas />} />
-                  <Route path="cronograma" element={<Cronograma />} />
-                  <Route path="documentacao" element={<DocumentacaoGoLive />} />
-                  <Route path="menu" element={<MenuPage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AppLayout>
-            }
-          />
-        </Routes>
-      </AlertsProvider>
-    </NotificationsProvider>
+    <MockDataProvider>
+      <NotificationsProvider>
+        <AlertsProvider>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/*"
+              element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="dashboard" element={<Index />} />
+                    <Route path="processos" element={<Processos />} />
+                    <Route path="processos/novo" element={<NovoProcesso />} />
+                    <Route path="processos/:id" element={<ProcessoDetalhe />} />
+                    <Route path="tarefas" element={<Tarefas />} />
+                    <Route path="tarefas/nova" element={<NovaTarefa />} />
+                    <Route path="agenda" element={<Agenda />} />
+                    <Route path="responsaveis" element={<Responsaveis />} />
+                    <Route path="alertas" element={<Alertas />} />
+                    <Route path="integracoes" element={<Integracoes />} />
+                    <Route path="relatorios" element={<Relatorios />} />
+                    <Route path="auditoria" element={<Auditoria />} />
+                    <Route path="empresas" element={<Empresas />} />
+                    <Route path="usuarios" element={<UsuariosPermissoes />} />
+                    <Route path="checklists-templates" element={<ChecklistTemplates />} />
+                    <Route path="regras-alertas" element={<RegrasAlertas />} />
+                    <Route path="cronograma" element={<Cronograma />} />
+                    <Route path="documentacao" element={<DocumentacaoGoLive />} />
+                    <Route path="menu" element={<MenuPage />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AppLayout>
+              }
+            />
+          </Routes>
+        </AlertsProvider>
+      </NotificationsProvider>
+    </MockDataProvider>
   );
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <AuthenticatedApp />
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <GlobalSearch />
+            <AuthenticatedApp />
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

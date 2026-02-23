@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { mockCases, mockTasks } from "@/data/mock";
+import { mockCases, mockTasks, type Task } from "@/data/mock";
+import { useMockData } from "@/contexts/MockDataContext";
 import { availableMockUsers } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ const ALL_USERS = availableMockUsers.map((u) => u.name);
 export default function NovaTarefa() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { notifyChange } = useMockData();
   const { addNotification } = useNotificationsContext();
 
   // Processo
@@ -98,6 +100,23 @@ export default function NovaTarefa() {
 
     const responsavelNames = selectedUsers.join(", ");
     const caseLabel = selectedCase ? ` · ${selectedCase.case_number}` : "";
+
+    // Persist task into mock array so it survives navigation
+    const newTask: Task = {
+      id: `task_${Date.now()}`,
+      title: description.trim(),
+      case_id: selectedCaseId ?? undefined,
+      case_number: selectedCase?.case_number,
+      employee: selectedCase?.employee,
+      assignees: [...selectedUsers],
+      due_at: date!.toISOString().split("T")[0] + (allDay ? "T23:59:00" : `T${time}:00`),
+      priority: priority as Task["priority"],
+      status: "aberta",
+      show_in_calendar: showInCalendar,
+      all_day: allDay,
+    };
+    mockTasks.push(newTask);
+    notifyChange();
 
     // Dispara notificação in-app global
     addNotification({

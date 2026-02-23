@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { mockCompanies } from "@/data/mock";
 
 export type AppRole = "admin" | "responsavel_juridico_interno" | "dp" | "rh" | "vendas" | "logistica" | "frota" | "advogado_externo";
@@ -37,6 +37,7 @@ export { mockUsers as availableMockUsers };
 interface AuthContextType {
   user: MockUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (userId: string) => void;
   logout: () => void;
   /** Filter helper: returns true if item belongs to user's tenant */
@@ -48,13 +49,32 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<MockUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Restore session from localStorage (prevents login flash)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("siag_user_id");
+      if (saved) {
+        const found = mockUsers.find((u) => u.id === saved);
+        if (found) setUser(found);
+      }
+    } catch {}
+    setIsLoading(false);
+  }, []);
 
   const login = useCallback((userId: string) => {
     const found = mockUsers.find((u) => u.id === userId);
-    if (found) setUser(found);
+    if (found) {
+      setUser(found);
+      localStorage.setItem("siag_user_id", found.id);
+    }
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem("siag_user_id");
+  }, []);
 
   const canAccessCompany = useCallback(
     (companyId: string) => {
@@ -74,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, canAccessCompany, hasRole }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, canAccessCompany, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

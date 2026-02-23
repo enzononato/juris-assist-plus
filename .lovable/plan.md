@@ -1,45 +1,58 @@
 
-## Limpar Contadores da Agenda
+## Check-up Completo do Sistema SIAG
 
-### Problema
+### Erros Encontrados
 
-A Agenda continua mostrando 8 eventos (1 audiencia, 3 prazos, 4 tarefas) porque a funcao `getEventsForDate` em `src/pages/Agenda.tsx` nao filtra por status. Tarefas com status `concluida` e prazos com status `cumprido` ainda aparecem no calendario.
+**1. Erro de ref no Login (console)**
+O componente `Login` nao usa `forwardRef`, mas o React Router tenta passar uma ref para ele dentro do `AuthenticatedApp`. Isso gera o warning "Function components cannot be given refs" no console. Solucao: o `Login` nao precisa de ref -- o problema esta na forma como ele e renderizado fora de `<Routes>` no `AuthenticatedApp`. Nao e critico, mas polui o console.
 
-### Solucao
+**2. Erro de ref no Badge (console)**  
+O componente `Badge` e uma funcao simples sem `forwardRef`. Quando usado como filho de um `Button` ou `Tooltip` na pagina Agenda, gera o mesmo warning. Solucao: adicionar `React.forwardRef` ao componente `Badge`.
 
-Adicionar filtros de status na funcao `getEventsForDate` para excluir:
-- **Tarefas** com status `concluida`
-- **Prazos** com status `cumprido`
-- **Audiencias** de processos com status `encerrado`
+**3. Botao "Sair do Sistema" no MenuPage nao funciona**
+O botao de logout no `MenuPage.tsx` nao chama nenhuma funcao -- e apenas um `<button>` vazio sem `onClick`. Precisa chamar `logout()` do `useAuth()`.
 
-### Alteracao
+**4. Pagina Agenda com data fixa (hardcoded)**
+A constante `TODAY = new Date(2026, 1, 16)` esta hardcoded. Isso significa que o calendario nunca mostra o dia real como "hoje". Deveria usar `new Date()`.
 
-**Arquivo:** `src/pages/Agenda.tsx`
+**5. Constante CURRENT_USER hardcoded na Agenda**
+`const CURRENT_USER = "Thiago"` esta fixo. Deveria usar o usuario logado via `useAuth()` (ja importado no componente, mas nao usado nesse ponto).
 
-Na funcao `getEventsForDate` (linhas 78-143), adicionar verificacoes de status:
+---
 
-1. **Audiencias (linha 91-104):** Adicionar filtro para ignorar audiencias de processos encerrados:
-   ```
-   if (caso?.status === "encerrado") return;
-   ```
+### Melhorias Recomendadas
 
-2. **Prazos (linha 106-118):** Adicionar filtro para ignorar prazos cumpridos:
-   ```
-   if (d.status === "cumprido") return;
-   ```
+**6. Seguranca: senha fixa no codigo**
+A senha `SENHA_PADRAO = "rev123"` esta exposta no codigo-fonte do Login. Qualquer pessoa pode ver via DevTools. Quando migrar para autenticacao real com Supabase Auth, isso sera resolvido.
 
-3. **Tarefas (linha 120-141):** Adicionar filtro para ignorar tarefas concluidas:
-   ```
-   if (t.status === "concluida") return;
-   ```
+**7. GlobalSearch fora do contexto de autenticacao**
+O `GlobalSearch` esta posicionado fora do `MockDataProvider` e `NotificationsProvider` no App.tsx. Ele acessa `mockCases` diretamente, entao funciona, mas se migrar para dados do Supabase, precisara de contexto adequado.
 
-### Resultado Esperado
+**8. Notificacoes perdidas ao recarregar**
+O `NotificationsContext` armazena notificacoes apenas em `useState` -- ao recarregar a pagina, todas sao perdidas. Considerar persistir no `localStorage` ou Supabase.
 
-| Indicador Agenda | Antes | Depois |
-|---|---|---|
-| Total no periodo | 8 | 0 |
-| Audiencias | 1 | 0 |
-| Prazos | 3 | 0 |
-| Tarefas | 4 | 0 |
+**9. Arquivos de pagina muito grandes**
+- `Agenda.tsx`: 1032 linhas
+- `Relatorios.tsx`: 707 linhas  
+- `ProcessoDetalhe.tsx`: provavelmente grande tambem
 
-O calendario ficara limpo, sem eventos exibidos, e a secao "Proximos Eventos" tambem ficara vazia.
+Recomendavel extrair sub-componentes para facilitar manutencao.
+
+**10. Menu so visivel para admin**
+O item "Menu" no sidebar so aparece para `admin` (`adminOnly: true`). Usuarios com outras roles nao conseguem acessar funcoes como backup/export. Considerar liberar a pagina Menu para mais roles.
+
+---
+
+### Detalhes Tecnicos das Correcoes
+
+**Correcao 1 e 2 - forwardRef**: Adicionar `React.forwardRef` ao componente `Badge` em `src/components/ui/badge.tsx`.
+
+**Correcao 3 - Logout no Menu**: No `MenuPage.tsx`, importar `useAuth` e chamar `logout()` no `onClick` do botao "Sair do Sistema".
+
+**Correcao 4 e 5 - Agenda**: Substituir `TODAY` por `new Date()` e usar `user.name` do `useAuth()` em vez de `CURRENT_USER`.
+
+**Arquivos afetados:**
+- `src/components/ui/badge.tsx` -- adicionar forwardRef
+- `src/pages/MenuPage.tsx` -- wiring do botao logout
+- `src/pages/Agenda.tsx` -- remover constantes hardcoded
+- `src/contexts/NotificationsContext.tsx` -- persistencia opcional

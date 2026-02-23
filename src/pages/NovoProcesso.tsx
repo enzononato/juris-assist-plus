@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCompanies, mockEmployees } from "@/data/mock";
+import { mockCompanies, mockEmployees, mockCases } from "@/data/mock";
+import { useMockData } from "@/contexts/MockDataContext";
+import type { Case } from "@/data/mock";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { availableMockUsers } from "@/contexts/AuthContext";
@@ -16,6 +18,7 @@ const RESPONSAVEIS = availableMockUsers.map((u) => u.name);
 export default function NovoProcesso() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { notifyChange } = useMockData();
 
   const [caseNumber, setCaseNumber] = useState("");
   const [employeeName, setEmployeeName] = useState("");
@@ -24,6 +27,7 @@ export default function NovoProcesso() {
   const [status, setStatus] = useState<"em_andamento" | "encerrado">("em_andamento");
   const [responsible, setResponsible] = useState(user?.name ?? "");
   const [manager, setManager] = useState("nenhum");
+  const [amount, setAmount] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +35,29 @@ export default function NovoProcesso() {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
     }
+
+    const company = mockCompanies.find((c) => c.id === companyId);
+    const newCase: Case = {
+      id: crypto.randomUUID(),
+      case_number: caseNumber,
+      company_id: companyId || "c1",
+      company: company?.name || "N/A",
+      branch: company?.name || "",
+      employee: employeeName,
+      employee_id: "",
+      theme,
+      status: status === "encerrado" ? "encerrado" : "em_andamento",
+      court: "",
+      responsible: responsible || user?.name || "",
+      lawyer: "",
+      confidentiality: "normal",
+      filed_at: new Date().toISOString().slice(0, 10),
+      amount: amount ? parseFloat(amount.replace(/\./g, "").replace(",", ".")) : undefined,
+    };
+
+    mockCases.push(newCase);
+    notifyChange();
+
     toast({
       title: "Processo criado!",
       description: `Processo ${caseNumber} criado com sucesso.`,
@@ -92,6 +119,23 @@ export default function NovoProcesso() {
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
             rows={2}
+          />
+        </div>
+
+        {/* Valor da Causa */}
+        <div className="space-y-2">
+          <Label>Valor da Causa (R$)</Label>
+          <Input
+            placeholder="R$ 0,00"
+            inputMode="numeric"
+            value={amount}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "");
+              if (!raw) { setAmount(""); return; }
+              const cents = parseInt(raw, 10);
+              const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              setAmount(formatted);
+            }}
           />
         </div>
 

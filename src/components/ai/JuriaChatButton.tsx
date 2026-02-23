@@ -1,17 +1,19 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Bot, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JuriaChatPanel from "./JuriaChatPanel";
 
 export default function JuriaChatButton() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <>
       {/* Chat Panel */}
       {open && (
         <div className="fixed inset-x-0 bottom-0 z-50 sm:inset-auto sm:bottom-20 sm:right-4 sm:w-[400px] animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <JuriaChatPanel onClose={() => setOpen(false)} />
+          <JuriaChatPanel onClose={() => setOpen(false)} pathname={location.pathname} />
         </div>
       )}
 

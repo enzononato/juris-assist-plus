@@ -143,10 +143,6 @@ export default function Login() {
           </Button>
         </form>
 
-        <p className="text-center text-[10px] text-muted-foreground/60 font-medium flex items-center justify-center gap-1.5">
-          <Sparkles className="h-3 w-3" />
-          Ambiente de demonstração · Dados simulados
-        </p>
       </div>
     </div>
   );

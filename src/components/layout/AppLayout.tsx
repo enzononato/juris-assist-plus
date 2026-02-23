@@ -25,6 +25,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth, roleLabels } from "@/contexts/AuthContext";
 import { useAlerts } from "@/contexts/AlertsContext";
 import JuriaChatButton from "@/components/ai/JuriaChatButton";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 import InAppNotificationBell from "@/components/notifications/InAppNotificationBell";
 import {
   DropdownMenu,
@@ -123,6 +124,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 {roleLabels[user.role]}
               </Badge>
             )}
+            <ThemeToggle className="h-7 w-7 text-muted-foreground" />
             <InAppNotificationBell />
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={logout}>
               <LogOut className="h-3.5 w-3.5" />
@@ -229,6 +231,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </p>
             </div>
             <InAppNotificationBell />
+            <ThemeToggle className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" />
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" onClick={logout}>
               <LogOut className="h-3.5 w-3.5" />
             </Button>

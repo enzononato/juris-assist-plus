@@ -1,6 +1,6 @@
 import {
   Scale, RefreshCw, Clock, CalendarDays, FileText, ClipboardList,
-  CheckCircle2, MessageCircle, Users, Plus,
+  CheckCircle2, MessageCircle, Users, Plus, Pencil,
 } from "lucide-react";
 import { type TimelineEvent, type TimelineEventType } from "@/data/mock";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ const eventConfig: Record<TimelineEventType, { icon: React.ReactNode; color: str
   comentario: { icon: <MessageCircle className="h-3.5 w-3.5" />, color: "bg-muted text-muted-foreground" },
   checklist_aplicado: { icon: <ClipboardList className="h-3.5 w-3.5" />, color: "bg-accent text-accent-foreground" },
   responsavel_alterado: { icon: <Users className="h-3.5 w-3.5" />, color: "bg-info text-info-foreground" },
+  campo_editado: { icon: <Pencil className="h-3.5 w-3.5" />, color: "bg-warning text-warning-foreground" },
 };
 
 function formatRelativeDate(dateStr: string) {

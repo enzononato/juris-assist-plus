@@ -29,12 +29,12 @@ const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","A
 const WEEKDAYS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const WEEKDAYS_FULL = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
-const TODAY = new Date(2026, 1, 16);
+const TODAY = new Date();
 
 type ViewType = "dia" | "semana" | "mes" | "ano";
 type EventFilterType = "todos" | "audiencia" | "prazo" | "tarefa";
 type AssignmentFilter = "todos" | "minhas";
-const CURRENT_USER = "Thiago";
+// CURRENT_USER is now derived from useAuth() inside the component
 
 /** Retorna true se o caso é visível para o usuário com o papel/nome dados */
 function canUserSeeCase(caso: { responsible: string; lawyer: string; responsible_sector?: string } | undefined, userName: string, userRole: AppRole | undefined): boolean {
@@ -85,7 +85,7 @@ function getEventsForDate(
 ): CalendarEvent[] {
   const dateStr = formatDateStr(date);
   const items: CalendarEvent[] = [];
-  const user = currentUser ?? CURRENT_USER;
+  const user = currentUser ?? "Thiago";
 
   if (typeFilter === "todos" || typeFilter === "audiencia") {
     mockHearings.forEach((h) => {
@@ -686,11 +686,11 @@ function YearView({ selectedDate, onMonthClick, typeFilter, assignmentFilter, co
 // ═══════════════════════════ MAIN ═══════════════════════════
 export default function Agenda() {
   const { user } = useAuth();
-  const currentUserName = user?.name ?? CURRENT_USER;
+  const currentUserName = user?.name ?? "Thiago";
   const userRole = user?.role;
   const isAdmin = userRole === "admin" || userRole === "responsavel_juridico_interno";
 
-  const [selectedDate, setSelectedDate] = useState(new Date(2026,1,16));
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [view, setView] = useState<ViewType>("mes");
   const [typeFilter, setTypeFilter] = useState<EventFilterType>("todos");
   // MVP: não-admin começa em "Minhas atribuições"
