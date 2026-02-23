@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DollarSign, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight,
-  Search, Download, CheckCircle2, Filter, BarChart3, Receipt, Wallet, Plus
+  Search, Download, CheckCircle2, Filter, BarChart3, Receipt, Wallet, Plus,
+  Pencil, Trash2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -140,6 +142,60 @@ export default function Financeiro() {
     },
     onError: (err: Error) => {
       toast({ title: "Erro ao criar lançamento", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Edit state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<{
+    id: string; entry_type: "receita" | "despesa"; description: string;
+    amount: string; category: string; due_date: string; case_id: string; status: string;
+  } | null>(null);
+
+  const openEdit = (e: any) => {
+    setEditEntry({
+      id: e.id, entry_type: e.entry_type, description: e.description,
+      amount: String(e.amount), category: e.category ?? "",
+      due_date: e.due_date ?? "", case_id: e.case_id, status: e.status,
+    });
+    setEditOpen(true);
+  };
+
+  const updateEntry = useMutation({
+    mutationFn: async () => {
+      if (!editEntry) return;
+      const { error } = await supabase.from("financial_entries").update({
+        entry_type: editEntry.entry_type,
+        description: editEntry.description.trim(),
+        amount: parseFloat(editEntry.amount),
+        category: editEntry.category.trim() || null,
+        due_date: editEntry.due_date || null,
+        status: editEntry.status as any,
+      }).eq("id", editEntry.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-financial-entries"] });
+      toast({ title: "Lançamento atualizado ✓" });
+      setEditOpen(false);
+      setEditEntry(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteEntry = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("financial_entries").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-financial-entries"] });
+      toast({ title: "Lançamento excluído ✓" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
     },
   });
 
@@ -603,6 +659,26 @@ export default function Financeiro() {
                     <CheckCircle2 className="h-4 w-4" />
                   </Button>
                 )}
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Editar" onClick={() => openEdit(e)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Excluir">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+                      <AlertDialogDescription>Esta ação não pode ser desfeita. O lançamento "{e.description}" será removido permanentemente.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteEntry.mutate(e.id)}>Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))}
@@ -656,6 +732,67 @@ export default function Financeiro() {
           ))}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Lançamento</DialogTitle>
+          </DialogHeader>
+          {editEntry && (
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={editEntry.entry_type} onValueChange={(v) => setEditEntry({ ...editEntry, entry_type: v as "receita" | "despesa" })}>
+                    <SelectTrigger className="h-9 text-xs mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="receita">Receita</SelectItem>
+                      <SelectItem value="despesa">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input type="number" step="0.01" min="0" className="h-9 text-xs mt-1"
+                    value={editEntry.amount} onChange={(e) => setEditEntry({ ...editEntry, amount: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Descrição</Label>
+                <Textarea className="text-xs mt-1 min-h-[60px]"
+                  value={editEntry.description} onChange={(e) => setEditEntry({ ...editEntry, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Categoria</Label>
+                  <Input className="h-9 text-xs mt-1"
+                    value={editEntry.category} onChange={(e) => setEditEntry({ ...editEntry, category: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Vencimento</Label>
+                  <Input type="date" className="h-9 text-xs mt-1"
+                    value={editEntry.due_date} onChange={(e) => setEditEntry({ ...editEntry, due_date: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Status</Label>
+                  <Select value={editEntry.status} onValueChange={(v) => setEditEntry({ ...editEntry, status: v })}>
+                    <SelectTrigger className="h-9 text-xs mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button className="w-full gap-2" onClick={() => updateEntry.mutate()} disabled={updateEntry.isPending || !editEntry.description.trim() || !editEntry.amount}>
+                {updateEntry.isPending ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
