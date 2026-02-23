@@ -30,6 +30,7 @@ import ProcessoResumoTab from "@/components/processo/ProcessoResumoTab";
 import ProcessoAIResumoTab from "@/components/processo/ProcessoAIResumoTab";
 import AndamentosTab from "@/components/processo/AndamentosTab";
 import FinanceiroProcessoTab from "@/components/processo/FinanceiroProcessoTab";
+import DocumentosProcessoTab from "@/components/processo/DocumentosProcessoTab";
 import NovaAudienciaDialog from "@/components/processo/NovaAudienciaDialog";
 import NovoPrazoDialog from "@/components/processo/NovoPrazoDialog";
 import PacoteAudienciaDialog from "@/components/processo/PacoteAudienciaDialog";
@@ -316,6 +317,7 @@ export default function ProcessoDetalhe() {
           <TabsTrigger value="tarefas">Tarefas ({tasks.length})</TabsTrigger>
           <TabsTrigger value="provas">Provas ({evidenceRequests.length})</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
           <TabsTrigger value="checklists">Checklists ({checklists.length})</TabsTrigger>
         </TabsList>
 
@@ -456,6 +458,10 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="financeiro">
           <FinanceiroProcessoTab caseId={id!} />
+        </TabsContent>
+
+        <TabsContent value="documentos">
+          <DocumentosProcessoTab caseId={id!} caseData={caso} />
         </TabsContent>
 
         <TabsContent value="checklists">
