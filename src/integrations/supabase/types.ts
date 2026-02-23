@@ -1183,7 +1183,13 @@ export type Database = {
     }
     Enums: {
       alert_severity: "info" | "atencao" | "urgente"
-      alert_type: "prazo" | "audiencia" | "tarefa" | "prova" | "publicacao"
+      alert_type:
+        | "prazo"
+        | "audiencia"
+        | "tarefa"
+        | "prova"
+        | "publicacao"
+        | "financeiro"
       app_role:
         | "admin"
         | "responsavel_juridico_interno"
@@ -1380,7 +1386,14 @@ export const Constants = {
   public: {
     Enums: {
       alert_severity: ["info", "atencao", "urgente"],
-      alert_type: ["prazo", "audiencia", "tarefa", "prova", "publicacao"],
+      alert_type: [
+        "prazo",
+        "audiencia",
+        "tarefa",
+        "prova",
+        "publicacao",
+        "financeiro",
+      ],
       app_role: [
         "admin",
         "responsavel_juridico_interno",
