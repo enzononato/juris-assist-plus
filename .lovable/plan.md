@@ -1,58 +1,188 @@
 
-## Check-up Completo do Sistema SIAG
 
-### Erros Encontrados
+# Sugestoes de Melhorias para o SIAG -- Baseado em Concorrentes
 
-**1. Erro de ref no Login (console)**
-O componente `Login` nao usa `forwardRef`, mas o React Router tenta passar uma ref para ele dentro do `AuthenticatedApp`. Isso gera o warning "Function components cannot be given refs" no console. Solucao: o `Login` nao precisa de ref -- o problema esta na forma como ele e renderizado fora de `<Routes>` no `AuthenticatedApp`. Nao e critico, mas polui o console.
-
-**2. Erro de ref no Badge (console)**  
-O componente `Badge` e uma funcao simples sem `forwardRef`. Quando usado como filho de um `Button` ou `Tooltip` na pagina Agenda, gera o mesmo warning. Solucao: adicionar `React.forwardRef` ao componente `Badge`.
-
-**3. Botao "Sair do Sistema" no MenuPage nao funciona**
-O botao de logout no `MenuPage.tsx` nao chama nenhuma funcao -- e apenas um `<button>` vazio sem `onClick`. Precisa chamar `logout()` do `useAuth()`.
-
-**4. Pagina Agenda com data fixa (hardcoded)**
-A constante `TODAY = new Date(2026, 1, 16)` esta hardcoded. Isso significa que o calendario nunca mostra o dia real como "hoje". Deveria usar `new Date()`.
-
-**5. Constante CURRENT_USER hardcoded na Agenda**
-`const CURRENT_USER = "Thiago"` esta fixo. Deveria usar o usuario logado via `useAuth()` (ja importado no componente, mas nao usado nesse ponto).
+Analise dos principais concorrentes no mercado juridico brasileiro (ADVBOX, EasyJur, Projuris, Brainlaw, TOTVS Sisjuri, Legalcloud, Autojur) e comparacao com o estado atual do SIAG.
 
 ---
 
-### Melhorias Recomendadas
+## O que o SIAG ja tem de bom
 
-**6. Seguranca: senha fixa no codigo**
-A senha `SENHA_PADRAO = "rev123"` esta exposta no codigo-fonte do Login. Qualquer pessoa pode ver via DevTools. Quando migrar para autenticacao real com Supabase Auth, isso sera resolvido.
-
-**7. GlobalSearch fora do contexto de autenticacao**
-O `GlobalSearch` esta posicionado fora do `MockDataProvider` e `NotificationsProvider` no App.tsx. Ele acessa `mockCases` diretamente, entao funciona, mas se migrar para dados do Supabase, precisara de contexto adequado.
-
-**8. Notificacoes perdidas ao recarregar**
-O `NotificationsContext` armazena notificacoes apenas em `useState` -- ao recarregar a pagina, todas sao perdidas. Considerar persistir no `localStorage` ou Supabase.
-
-**9. Arquivos de pagina muito grandes**
-- `Agenda.tsx`: 1032 linhas
-- `Relatorios.tsx`: 707 linhas  
-- `ProcessoDetalhe.tsx`: provavelmente grande tambem
-
-Recomendavel extrair sub-componentes para facilitar manutencao.
-
-**10. Menu so visivel para admin**
-O item "Menu" no sidebar so aparece para `admin` (`adminOnly: true`). Usuarios com outras roles nao conseguem acessar funcoes como backup/export. Considerar liberar a pagina Menu para mais roles.
+- Dashboard com KPIs e graficos (pie, bar, area)
+- Busca global com Ctrl+K
+- IA integrada (Juria Chat)
+- Gestao de processos, tarefas, agenda, alertas
+- Multi-empresa com filtros por filial
+- Sistema de roles e permissoes
+- Tema claro/escuro
+- PWA configurado
+- Loading skeletons e transicoes suaves
 
 ---
 
-### Detalhes Tecnicos das Correcoes
+## Melhorias Recomendadas (por prioridade)
 
-**Correcao 1 e 2 - forwardRef**: Adicionar `React.forwardRef` ao componente `Badge` em `src/components/ui/badge.tsx`.
+### 1. Captura Automatica de Andamentos Processuais
+**Concorrentes que tem:** ADVBOX, Projuris, EasyJur, Autojur, TOTVS
 
-**Correcao 3 - Logout no Menu**: No `MenuPage.tsx`, importar `useAuth` e chamar `logout()` no `onClick` do botao "Sair do Sistema".
+O recurso mais valorizado no mercado. Consulta automatica nos tribunais (TRT, TST) para puxar movimentacoes e notificar o usuario.
 
-**Correcao 4 e 5 - Agenda**: Substituir `TODAY` por `new Date()` e usar `user.name` do `useAuth()` em vez de `CURRENT_USER`.
+- Integracao com APIs dos tribunais (DataJud, e-Proc)
+- Notificacao push quando houver movimentacao
+- Timeline atualizada automaticamente
+- Alertas inteligentes: "Sentenca publicada no processo X"
 
-**Arquivos afetados:**
-- `src/components/ui/badge.tsx` -- adicionar forwardRef
-- `src/pages/MenuPage.tsx` -- wiring do botao logout
-- `src/pages/Agenda.tsx` -- remover constantes hardcoded
-- `src/contexts/NotificationsContext.tsx` -- persistencia opcional
+**Impacto:** Alto -- elimina trabalho manual diario de conferir andamentos.
+
+---
+
+### 2. Gestao Financeira / Honorarios
+**Concorrentes que tem:** ADVBOX, EasyJur, Projuris, Brainlaw
+
+Totalmente ausente no SIAG. Concorrentes oferecem:
+
+- Controle de honorarios por processo
+- Timesheet (registro de horas trabalhadas)
+- Contas a pagar/receber vinculadas a processos
+- Relatorio de rentabilidade por cliente/processo
+- Dashboard financeiro com receita projetada vs realizada
+
+**Impacto:** Alto -- advogados e DPs precisam controlar custos processuais.
+
+---
+
+### 3. Modelos de Documentos e Geracao Automatica
+**Concorrentes que tem:** EasyJur, ADVBOX, Projuris, Legalcloud
+
+- Biblioteca de modelos (peticoes, contratos, notificacoes)
+- Preenchimento automatico com dados do processo (variaveis)
+- Geracao via IA (a Juria ja existe, poderia gerar documentos)
+- Versionamento de documentos
+- Assinatura eletronica integrada
+
+**Impacto:** Alto -- reduz tempo gasto em documentos repetitivos.
+
+---
+
+### 4. Kanban para Processos e Tarefas
+**Concorrentes que tem:** EasyJur, ADVBOX, Autojur
+
+O SIAG tem lista e grid. Falta a visao Kanban:
+
+- Arrastar processos entre colunas de status
+- Kanban de tarefas por prioridade ou responsavel
+- Visao de pipeline do contencioso
+- Limites WIP (work in progress) por coluna
+
+**Impacto:** Medio-alto -- melhora a visualizacao do fluxo de trabalho.
+
+---
+
+### 5. Central de Prazos Inteligente
+**Concorrentes que tem:** Legalcloud, ADVBOX, Projuris
+
+Apesar de ter prazos, o SIAG nao calcula prazos processuais automaticamente:
+
+- Calculadora de prazos trabalhistas (dias uteis, feriados locais)
+- Contagem automatica baseada no tipo de prazo
+- Alertas escalonados (15 dias, 7 dias, 3 dias, vencendo hoje)
+- Calendario de feriados por comarca
+- Controle de suspensao de prazos
+
+**Impacto:** Alto -- erro de prazo e a maior causa de problemas para advogados.
+
+---
+
+### 6. Portal do Cliente / Advogado Externo
+**Concorrentes que tem:** Projuris Empresas, Brainlaw, TOTVS
+
+O SIAG ja tem role "advogado_externo" mas com acesso limitado:
+
+- Painel simplificado para o cliente acompanhar seus processos
+- Upload de documentos pelo cliente
+- Chat direto com o advogado responsavel
+- Status atualizado em tempo real
+- Relatorios personalizados para o cliente
+
+**Impacto:** Medio -- melhora a comunicacao e reduz ligacoes/emails.
+
+---
+
+### 7. Business Intelligence e Relatorios Avancados
+**Concorrentes que tem:** ADVBOX (BI integrado), DeepLegal, Brainlaw
+
+O SIAG tem relatorios basicos. Concorrentes oferecem:
+
+- Analise preditiva (probabilidade de exito)
+- Benchmarking de valores por tipo de acao
+- Heatmap de riscos por filial/tema
+- Provisao financeira automatica
+- Export em PDF/Excel com marca do escritorio
+- Dashboards customizaveis pelo usuario
+
+**Impacto:** Medio-alto -- diferencial competitivo importante.
+
+---
+
+### 8. App Mobile Nativo / PWA Aprimorado
+**Concorrentes que tem:** Projuris (app nativo), EasyJur, ADVBOX
+
+O SIAG tem PWA configurado, mas pode melhorar:
+
+- Notificacoes push nativas
+- Modo offline para consulta de processos
+- Captura de fotos de documentos via camera
+- Biometria para login (FaceID/fingerprint)
+- Widget de prazos na tela inicial
+
+**Impacto:** Medio -- advogados trabalham muito pelo celular.
+
+---
+
+### 9. Automacao de Workflows
+**Concorrentes que tem:** Brainlaw, TOTVS, Projuris Empresas
+
+- Regras tipo "quando processo mudar para status X, criar tarefa Y"
+- Workflows pre-configurados por tipo de acao trabalhista
+- Distribuicao automatica de tarefas por carga de trabalho
+- Escalacao automatica de prazos nao cumpridos
+- Templates de fluxo de trabalho reutilizaveis
+
+**Impacto:** Alto -- reduz trabalho manual repetitivo.
+
+---
+
+### 10. Integracao com Sistemas Externos
+**Concorrentes que tem:** Todos os líderes de mercado
+
+- Integracao com e-mail (Gmail/Outlook) para vincular emails a processos
+- Calendario Google/Outlook sincronizado
+- Integracao com WhatsApp para notificacoes
+- API publica para integracao com ERP (SAP, TOTVS)
+- Webhook para eventos do sistema
+
+**Impacto:** Medio -- facilita adocao em empresas que ja usam outros sistemas.
+
+---
+
+## Resumo de Prioridades
+
+```text
+Prioridade    Funcionalidade                      Esforco
+──────────    ──────────────────────────────       ───────
+1 (critica)   Captura de andamentos processuais    Alto
+2 (critica)   Central de prazos inteligente        Medio
+3 (alta)      Gestao financeira / honorarios       Alto
+4 (alta)      Modelos de documentos + IA           Medio
+5 (alta)      Automacao de workflows               Alto
+6 (media)     Kanban para processos/tarefas        Baixo
+7 (media)     BI e relatorios avancados            Medio
+8 (media)     Portal do cliente aprimorado         Medio
+9 (baixa)     PWA aprimorado                       Medio
+10 (baixa)    Integracoes externas                 Alto
+```
+
+## Proximos Passos Sugeridos
+
+Para comecar a implementar, recomendo priorizar o **Kanban** (esforco baixo, impacto visual alto) e a **Central de Prazos** (alto valor para o usuario). Ambos podem ser construidos em cima da estrutura existente do SIAG sem grandes mudancas de arquitetura.
+

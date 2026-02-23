@@ -1,4 +1,5 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
+import PageTransition from "@/components/layout/PageTransition";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
@@ -17,6 +18,7 @@ import {
   FileText,
   CheckSquare,
   ChevronDown,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,9 @@ import { useAlerts } from "@/contexts/AlertsContext";
 import JuriaChatButton from "@/components/ai/JuriaChatButton";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import InAppNotificationBell from "@/components/notifications/InAppNotificationBell";
+import ProfileDialog, { getUserAvatar } from "@/components/profile/ProfileDialog";
+import PushNotificationBanner from "@/components/pwa/PushNotificationBanner";
+import OfflineIndicator from "@/components/pwa/OfflineIndicator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +44,7 @@ const allNavItems = [
   { label: "Tarefas", mobileLabel: "Tarefas", icon: ClipboardList, path: "/tarefas", external: true, adminOnly: false },
   { label: "Agenda", mobileLabel: "Agenda", icon: CalendarDays, path: "/agenda", external: true, adminOnly: false },
   { label: "Processos", mobileLabel: "Processos", icon: Scale, path: "/processos", external: true, adminOnly: false },
+  { label: "Financeiro", mobileLabel: "Financ.", icon: DollarSign, path: "/financeiro", external: true, adminOnly: false },
   { label: "Responsáveis", mobileLabel: "Resp.", icon: UserCheck, path: "/responsaveis", external: false, adminOnly: true },
   { label: "Usuários e Permissões", mobileLabel: "Usuários", icon: Users, path: "/usuarios", external: false, adminOnly: true },
   { label: "Relatórios", mobileLabel: "Relatórios", icon: BarChart3, path: "/relatorios", external: false, adminOnly: false },
@@ -91,6 +97,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const { user, logout, hasRole } = useAuth();
   const { untreatedCount } = useAlerts();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const avatarUrl = user ? getUserAvatar(user.id) : null;
 
   const isExternal = hasRole(["advogado_externo"]);
   const isAdmin = hasRole(["admin"]);
@@ -119,10 +127,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             {user && (
-              <Badge variant="outline" className="text-[9px] gap-1 font-semibold">
-                <Shield className="h-2.5 w-2.5" />
-                {roleLabels[user.role]}
-              </Badge>
+              <button
+                onClick={() => setProfileOpen(true)}
+                className="shrink-0 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+                    {initials}
+                  </div>
+                )}
+              </button>
             )}
             <ThemeToggle className="h-7 w-7 text-muted-foreground" />
             <InAppNotificationBell />
@@ -131,7 +147,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto pb-[72px]">{children}</main>
+        <PushNotificationBanner />
+        <main className="flex-1 overflow-auto pb-[72px]"><PageTransition>{children}</PageTransition></main>
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t glass-strong safe-area-pb">
           <div className="flex h-[64px] items-center justify-around px-1">
             {mobileNavItems.map((item) => {
@@ -163,6 +180,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </nav>
         <JuriaChatButton />
+        <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
       </div>
     );
   }
@@ -221,15 +239,27 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* User */}
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-sidebar-primary-foreground shadow-sm" style={{ background: "var(--gradient-primary)" }}>
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1">
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="shrink-0 rounded-xl overflow-hidden hover:ring-2 hover:ring-sidebar-primary/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={user?.name} className="h-9 w-9 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-sidebar-primary-foreground shadow-sm" style={{ background: "var(--gradient-primary)" }}>
+                  {initials}
+                </div>
+              )}
+            </button>
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="min-w-0 flex-1 text-left hover:opacity-80 transition-opacity focus:outline-none"
+            >
               <p className="truncate text-sm font-semibold">{user?.name}</p>
               <p className="truncate text-[11px] text-sidebar-foreground/40 font-medium">
                 {user ? roleLabels[user.role] : ""}
               </p>
-            </div>
+            </button>
             <InAppNotificationBell />
             <ThemeToggle className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" />
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" onClick={logout}>
@@ -245,8 +275,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto bg-background">{children}</main>
+      <main className="flex-1 overflow-auto bg-background">
+        <PushNotificationBanner />
+        <PageTransition>{children}</PageTransition>
+      </main>
       <JuriaChatButton />
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }

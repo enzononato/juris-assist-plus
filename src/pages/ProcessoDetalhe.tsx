@@ -28,6 +28,9 @@ import ChecklistsTab from "@/components/checklists/ChecklistsTab";
 import TimelineTab from "@/components/timeline/TimelineTab";
 import ProcessoResumoTab from "@/components/processo/ProcessoResumoTab";
 import ProcessoAIResumoTab from "@/components/processo/ProcessoAIResumoTab";
+import AndamentosTab from "@/components/processo/AndamentosTab";
+import FinanceiroProcessoTab from "@/components/processo/FinanceiroProcessoTab";
+import DocumentosProcessoTab from "@/components/processo/DocumentosProcessoTab";
 import NovaAudienciaDialog from "@/components/processo/NovaAudienciaDialog";
 import NovoPrazoDialog from "@/components/processo/NovoPrazoDialog";
 import PacoteAudienciaDialog from "@/components/processo/PacoteAudienciaDialog";
@@ -307,11 +310,14 @@ export default function ProcessoDetalhe() {
         <TabsList className="mb-4 w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="resumo-ia">Resumo IA</TabsTrigger>
+          <TabsTrigger value="andamentos">Andamentos</TabsTrigger>
           <TabsTrigger value="timeline">Timeline ({timelineEvents.length})</TabsTrigger>
           <TabsTrigger value="prazos">Prazos ({deadlines.length})</TabsTrigger>
           <TabsTrigger value="audiencias">Audiências ({hearings.length})</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas ({tasks.length})</TabsTrigger>
           <TabsTrigger value="provas">Provas ({evidenceRequests.length})</TabsTrigger>
+          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
           <TabsTrigger value="checklists">Checklists ({checklists.length})</TabsTrigger>
         </TabsList>
 
@@ -321,6 +327,10 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="resumo-ia">
           <ProcessoAIResumoTab caso={caso} />
+        </TabsContent>
+
+        <TabsContent value="andamentos">
+          <AndamentosTab caseId={id!} caseNumber={caso.case_number} />
         </TabsContent>
 
         <TabsContent value="timeline">
@@ -444,6 +454,14 @@ export default function ProcessoDetalhe() {
 
         <TabsContent value="provas">
           <ProvasTab requests={evidenceRequests} items={evidenceItems} caseId={id} />
+        </TabsContent>
+
+        <TabsContent value="financeiro">
+          <FinanceiroProcessoTab caseId={id!} />
+        </TabsContent>
+
+        <TabsContent value="documentos">
+          <DocumentosProcessoTab caseId={id!} caseData={caso} />
         </TabsContent>
 
         <TabsContent value="checklists">

@@ -40,6 +40,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (userId: string) => void;
   logout: () => void;
+  updateUserProfile: (updates: Partial<Pick<MockUser, "name" | "email">>) => void;
   /** Filter helper: returns true if item belongs to user's tenant */
   canAccessCompany: (companyId: string) => boolean;
   hasRole: (roles: AppRole[]) => boolean;
@@ -76,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("siag_user_id");
   }, []);
 
+  const updateUserProfile = useCallback((updates: Partial<Pick<MockUser, "name" | "email">>) => {
+    setUser((prev) => prev ? { ...prev, ...updates } : prev);
+  }, []);
+
   const canAccessCompany = useCallback(
     (companyId: string) => {
       if (!user) return false;
@@ -94,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, canAccessCompany, hasRole }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, updateUserProfile, canAccessCompany, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

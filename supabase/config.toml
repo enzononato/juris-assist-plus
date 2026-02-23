@@ -1,1 +1,13 @@
 project_id = "liawkcjijuokmkerqmqk"
+
+[functions.juria-chat]
+verify_jwt = false
+
+[functions.fetch-movements]
+verify_jwt = false
+
+[functions.generate-document]
+verify_jwt = false
+
+[functions.financial-alerts]
+verify_jwt = false
