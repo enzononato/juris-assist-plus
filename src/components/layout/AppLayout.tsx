@@ -120,7 +120,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-svh flex-col bg-background">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b glass-strong px-4">
           <div className="flex items-center gap-2.5">
-            <OfflineIndicator />
             <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "var(--gradient-primary)" }}>
               <Scale className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
@@ -262,7 +261,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </p>
             </button>
             <InAppNotificationBell />
-            <OfflineIndicator />
             <ThemeToggle className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" />
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all" onClick={logout}>
               <LogOut className="h-3.5 w-3.5" />
